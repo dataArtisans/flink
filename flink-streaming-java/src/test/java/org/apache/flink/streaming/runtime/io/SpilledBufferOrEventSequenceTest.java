@@ -475,7 +475,7 @@ public class SpilledBufferOrEventSequenceTest {
 		assertTrue("is not buffer", boe.isBuffer());
 
 		Buffer buf = boe.getBuffer();
-		assertEquals("wrong buffer size", expectedSize, buf.getSize());
+		assertEquals("wrong buffer size", expectedSize, buf.getWriterIndex());
 
 		MemorySegment seg = buf.getMemorySegment();
 		for (int i = 0; i < expectedSize; i++) {

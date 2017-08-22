@@ -24,6 +24,7 @@ import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
+import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 
 import org.junit.After;
@@ -374,8 +375,8 @@ public class BufferSpillerTest {
 			seg.put(i, (byte) i);
 		}
 
-		Buffer buf = new Buffer(seg, FreeingBufferRecycler.INSTANCE);
-		buf.setSize(size);
+		Buffer buf = new NetworkBuffer(seg, FreeingBufferRecycler.INSTANCE);
+		buf.setWriterIndex(size);
 		return new BufferOrEvent(buf, channelIndex);
 	}
 
@@ -384,7 +385,7 @@ public class BufferSpillerTest {
 		assertTrue("is not buffer", boe.isBuffer());
 
 		Buffer buf = boe.getBuffer();
-		assertEquals("wrong buffer size", expectedSize, buf.getSize());
+		assertEquals("wrong buffer size", expectedSize, buf.getWriterIndex());
 
 		MemorySegment seg = buf.getMemorySegment();
 		for (int i = 0; i < expectedSize; i++) {

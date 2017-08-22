@@ -51,7 +51,7 @@ public abstract class ResultSubpartition {
 
 	protected void updateStatistics(Buffer buffer) {
 		totalNumberOfBuffers++;
-		totalNumberOfBytes += buffer.getSize();
+		totalNumberOfBytes += buffer.getWriterIndex();
 	}
 
 	protected long getTotalNumberOfBuffers() {

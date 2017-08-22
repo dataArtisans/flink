@@ -112,7 +112,7 @@ public abstract class SubpartitionTestBase extends TestLogger {
 
 	private void verifyViewReleasedAfterParentRelease(ResultSubpartition partition) throws Exception {
 		// Add a buffer
-		Buffer buffer = TestBufferFactory.createBuffer();
+		Buffer buffer = TestBufferFactory.createBuffer(TestBufferFactory.BUFFER_SIZE);
 		partition.add(buffer);
 		partition.finish();
 

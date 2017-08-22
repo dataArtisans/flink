@@ -107,7 +107,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 		verify(listener, times(1)).notifyBuffersAvailable(eq(0L));
 
 		// Add data to the queue...
-		subpartition.add(createBuffer());
+		subpartition.add(createBuffer(BUFFER_SIZE));
 		assertEquals(1, subpartition.getTotalNumberOfBuffers());
 		assertEquals(BUFFER_SIZE, subpartition.getTotalNumberOfBytes());
 
@@ -127,7 +127,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 		assertEquals(0, subpartition.getBuffersInBacklog());
 
 		// Add data to the queue...
-		subpartition.add(createBuffer());
+		subpartition.add(createBuffer(BUFFER_SIZE));
 
 		assertEquals(2, subpartition.getTotalNumberOfBuffers());
 		assertEquals(1, subpartition.getBuffersInBacklog());
