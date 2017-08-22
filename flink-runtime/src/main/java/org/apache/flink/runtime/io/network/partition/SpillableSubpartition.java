@@ -227,7 +227,7 @@ class SpillableSubpartition extends ResultSubpartition {
 				// Spill all buffers
 				for (int i = 0; i < numberOfBuffers; i++) {
 					Buffer buffer = buffers.remove();
-					spilledBytes += buffer.getSize();
+					spilledBytes += buffer.getWriterIndex();
 					spillWriter.writeBlock(buffer);
 				}
 

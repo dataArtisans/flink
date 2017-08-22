@@ -42,6 +42,7 @@ class InputChannelTestUtils {
 		final Buffer mockBuffer = mock(Buffer.class);
 		when(mockBuffer.isBuffer()).thenReturn(true);
 		when(mockBuffer.getSize()).thenReturn(size);
+		when(mockBuffer.getWriterIndex()).thenReturn(size);
 		when(mockBuffer.isRecycled()).thenReturn(false);
 
 		return mockBuffer;

@@ -35,6 +35,7 @@ import org.apache.flink.runtime.io.network.buffer.BufferBuilder;
 import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
 import org.apache.flink.runtime.io.network.buffer.BufferRecycler;
+import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.io.network.util.TestPooledBufferProvider;
@@ -497,7 +498,7 @@ public class RecordWriterTest {
 					@Override
 					public Buffer answer(InvocationOnMock invocationOnMock) throws Throwable {
 						MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(bufferSize);
-						Buffer buffer = new Buffer(segment, DiscardingRecycler.INSTANCE);
+						Buffer buffer = new NetworkBuffer(segment, DiscardingRecycler.INSTANCE);
 						return buffer;
 					}
 				}

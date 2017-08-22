@@ -115,7 +115,7 @@ public class LargeRecordsTest {
 			
 			// move the last (incomplete buffer)
 			Buffer last = serializer.getCurrentBuffer();
-			deserializer.setNextMemorySegment(last.getMemorySegment(), last.getSize());
+			deserializer.setNextMemorySegment(last.getMemorySegment(), last.getWriterIndex());
 			serializer.clear();
 			
 			// deserialize records, as many as there are in the last buffer
@@ -213,7 +213,7 @@ public class LargeRecordsTest {
 			
 			// move the last (incomplete buffer)
 			Buffer last = serializer.getCurrentBuffer();
-			deserializer.setNextMemorySegment(last.getMemorySegment(), last.getSize());
+			deserializer.setNextMemorySegment(last.getMemorySegment(), last.getWriterIndex());
 			serializer.clear();
 			
 			// deserialize records, as many as there are in the last buffer

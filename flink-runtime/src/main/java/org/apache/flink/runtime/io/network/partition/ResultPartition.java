@@ -280,7 +280,7 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 
 				// Update statistics
 				totalNumberOfBuffers++;
-				totalNumberOfBytes += buffer.getSize();
+				totalNumberOfBytes += buffer.getWriterIndex();
 			}
 		} finally {
 			if (success) {

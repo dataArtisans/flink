@@ -33,6 +33,7 @@ import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
 import org.apache.flink.runtime.io.network.api.EndOfPartitionEvent;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
+import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.jobgraph.tasks.StatefulTask;
 
@@ -1406,8 +1407,8 @@ public class BarrierBufferTest {
 		MemorySegment memory = MemorySegmentFactory.allocateUnpooledSegment(PAGE_SIZE);
 		memory.put(0, bytes);
 
-		Buffer buf = new Buffer(memory, FreeingBufferRecycler.INSTANCE);
-		buf.setSize(size);
+		Buffer buf = new NetworkBuffer(memory, FreeingBufferRecycler.INSTANCE);
+		buf.setWriterIndex(size);
 
 		// retain an additional time so it does not get disposed after being read by the input gate
 		buf.retain();
@@ -1426,6 +1427,7 @@ public class BarrierBufferTest {
 
 		if (expected.isBuffer()) {
 			assertEquals(expected.getBuffer().getSize(), present.getBuffer().getSize());
+			assertEquals(expected.getBuffer().getWriterIndex(), present.getBuffer().getWriterIndex());
 			MemorySegment expectedMem = expected.getBuffer().getMemorySegment();
 			MemorySegment presentMem = present.getBuffer().getMemorySegment();
 			assertTrue("memory contents differs", expectedMem.compare(presentMem, 0, 0, PAGE_SIZE) == 0);
@@ -1455,7 +1457,7 @@ public class BarrierBufferTest {
 		long expectedBuffered = 0;
 		for (BufferOrEvent boe : sequence) {
 			if (boe.isBuffer()) {
-				expectedBuffered += BufferSpiller.HEADER_SIZE + boe.getBuffer().getSize();
+				expectedBuffered += BufferSpiller.HEADER_SIZE + boe.getBuffer().getWriterIndex();
 			}
 		}
 

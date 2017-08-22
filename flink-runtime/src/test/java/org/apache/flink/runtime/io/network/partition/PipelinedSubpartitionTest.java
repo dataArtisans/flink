@@ -28,6 +28,7 @@ import org.apache.flink.runtime.io.network.util.TestPooledBufferProvider;
 import org.apache.flink.runtime.io.network.util.TestProducerSource;
 import org.apache.flink.runtime.io.network.util.TestSubpartitionConsumer;
 import org.apache.flink.runtime.io.network.util.TestSubpartitionProducer;
+
 import org.junit.AfterClass;
 import org.junit.Test;
 
@@ -102,7 +103,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 		verify(listener, times(1)).notifyBuffersAvailable(eq(0L));
 
 		// Add data to the queue...
-		subpartition.add(createBuffer());
+		subpartition.add(createBuffer(BUFFER_SIZE));
 		assertEquals(1, subpartition.getTotalNumberOfBuffers());
 		assertEquals(BUFFER_SIZE, subpartition.getTotalNumberOfBytes());
 
@@ -114,7 +115,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 		assertNull(view.getNextBuffer());
 
 		// Add data to the queue...
-		subpartition.add(createBuffer());
+		subpartition.add(createBuffer(BUFFER_SIZE));
 		assertEquals(2, subpartition.getTotalNumberOfBuffers());
 		assertEquals(2 * BUFFER_SIZE, subpartition.getTotalNumberOfBytes());
 		verify(listener, times(2)).notifyBuffersAvailable(eq(1L));

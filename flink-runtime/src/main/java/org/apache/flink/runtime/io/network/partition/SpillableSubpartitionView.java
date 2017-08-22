@@ -107,7 +107,7 @@ class SpillableSubpartitionView implements ResultSubpartitionView {
 				int numBuffers = buffers.size();
 				for (int i = 0; i < numBuffers; i++) {
 					Buffer buffer = buffers.remove();
-					spilledBytes += buffer.getSize();
+					spilledBytes += buffer.getWriterIndex();
 					spillWriter.writeBlock(buffer);
 				}
 
