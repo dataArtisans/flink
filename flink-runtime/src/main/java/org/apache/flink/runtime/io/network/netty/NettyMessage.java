@@ -21,16 +21,18 @@ package org.apache.flink.runtime.io.network.netty;
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
-import org.apache.flink.runtime.io.network.buffer.Buffer;
+import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannel;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannelID;
 import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
+import org.apache.flink.util.ExceptionUtils;
 
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBufAllocator;
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBufInputStream;
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBufOutputStream;
+import org.apache.flink.shaded.netty4.io.netty.buffer.CompositeByteBuf;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandler;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandlerContext;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelOutboundHandlerAdapter;
@@ -63,7 +65,7 @@ public abstract class NettyMessage {
 	// constructor in order to work with the generic deserializer.
 	// ------------------------------------------------------------------------
 
-	static final int HEADER_LENGTH = 4 + 4 + 1; // frame length (4), magic number (4), msg ID (1)
+	static final int FRAME_HEADER_LENGTH = 4 + 4 + 1; // frame length (4), magic number (4), msg ID (1)
 
 	static final int MAGIC_NUMBER = 0xBADC0FFE;
 
@@ -94,31 +96,63 @@ public abstract class NettyMessage {
 	 * Allocates a new (header and contents) buffer and adds some header information for the frame
 	 * decoder.
 	 *
-	 * <p>If the <tt>length</tt> is unknown, you must write the actual length after adding the
-	 * contents as an integer to position <tt>0</tt>!
+	 * <p>If the <tt>contentLength</tt> is unknown, you must write the actual length after adding
+	 * the contents as an integer to position <tt>0</tt>!
 	 *
 	 * @param allocator
 	 * 		byte buffer allocator to use
 	 * @param id
 	 * 		{@link NettyMessage} subclass ID
-	 * @param length
+	 * @param contentLength
 	 * 		content length (or <tt>-1</tt> if unknown)
 	 *
 	 * @return a newly allocated direct buffer with header data written for {@link
 	 * NettyMessageDecoder}
 	 */
-	private static ByteBuf allocateBuffer(ByteBufAllocator allocator, byte id, int length) {
-		checkArgument(length <= Integer.MAX_VALUE - HEADER_LENGTH);
+	private static ByteBuf allocateBuffer(ByteBufAllocator allocator, byte id, int contentLength) {
+		return allocateBuffer(allocator, id, 0, contentLength, true);
+	}
+
+	/**
+	 * Allocates a new buffer and adds some header information for the frame decoder.
+	 *
+	 * <p>If the <tt>contentLength</tt> is unknown, you must write the actual length after adding
+	 * the contents as an integer to position <tt>0</tt>!
+	 *
+	 * @param allocator
+	 * 		byte buffer allocator to use
+	 * @param id
+	 * 		{@link NettyMessage} subclass ID
+	 * @param messageHeaderLength
+	 * 		additional header length that should be part of the allocated buffer and is written
+	 * 		outside of this method
+	 * @param contentLength
+	 * 		content length (or <tt>-1</tt> if unknown)
+	 * @param allocateForContent
+	 * 		whether to make room for the actual content in the buffer (<tt>true</tt>) or whether to
+	 * 		only return a buffer with the header information (<tt>false</tt>)
+	 *
+	 * @return a newly allocated direct buffer with header data written for {@link
+	 * NettyMessageDecoder}
+	 */
+	private static ByteBuf allocateBuffer(
+			ByteBufAllocator allocator,
+			byte id,
+			int messageHeaderLength,
+			int contentLength,
+			boolean allocateForContent) {
+		checkArgument(contentLength <= Integer.MAX_VALUE - FRAME_HEADER_LENGTH);
 
 		final ByteBuf buffer;
-		if (length != -1) {
-			buffer = allocator.directBuffer(HEADER_LENGTH + length);
+		if (!allocateForContent) {
+			buffer = allocator.directBuffer(FRAME_HEADER_LENGTH + messageHeaderLength);
+		} else if (contentLength != -1) {
+			buffer = allocator.directBuffer(FRAME_HEADER_LENGTH + messageHeaderLength + contentLength);
 		} else {
-			// content length unknown -> start with the default initial size (rather than HEADER_LENGTH only):
+			// content length unknown -> start with the default initial size (rather than FRAME_HEADER_LENGTH only):
 			buffer = allocator.directBuffer();
 		}
-
-		buffer.writeInt(HEADER_LENGTH + length);
+		buffer.writeInt(FRAME_HEADER_LENGTH + messageHeaderLength + contentLength); // may be updated later, e.g. if contentLength == -1
 		buffer.writeInt(MAGIC_NUMBER);
 		buffer.writeByte(id);
 
@@ -218,7 +252,7 @@ public abstract class NettyMessage {
 		private static final byte ID = 0;
 
 		@Nullable
-		final Buffer buffer;
+		final NetworkBuffer buffer;
 
 		final InputChannelID receiverId;
 
@@ -248,7 +282,7 @@ public abstract class NettyMessage {
 			this.backlog = backlog;
 		}
 
-		BufferResponse(Buffer buffer, int sequenceNumber, InputChannelID receiverId, int backlog) {
+		BufferResponse(NetworkBuffer buffer, int sequenceNumber, InputChannelID receiverId, int backlog) {
 			this.buffer = checkNotNull(buffer);
 			this.retainedSlice = null;
 			this.isBuffer = buffer.isBuffer();
@@ -279,33 +313,38 @@ public abstract class NettyMessage {
 		@Override
 		ByteBuf write(ByteBufAllocator allocator) throws IOException {
 			checkNotNull(buffer, "No buffer instance to serialize.");
+			// receiver ID (16), sequence number (4), backlog (4), isBuffer (1), buffer size (4)
+			final int messageHeaderLength = 16 + 4 + 4 + 1 + 4;
 
-
-			ByteBuf result = null;
+			ByteBuf headerBuf = null;
 			try {
-				ByteBuffer nioBufferReadable = buffer.getNioBufferReadable();
-				int length = 16 + 4 + 4 + 1 + 4 + nioBufferReadable.remaining();
+				// in order to forward the buffer to netty, it needs an allocator set
+				buffer.setAllocator(allocator);
 
-				result = allocateBuffer(allocator, ID, length);
+				// only allocate header buffer - we will combine it with the data buffer below
+				headerBuf = allocateBuffer(allocator, ID, messageHeaderLength, buffer.readableBytes(), false);
 
-				receiverId.writeTo(result);
-				result.writeInt(sequenceNumber);
-				result.writeInt(backlog);
-				result.writeBoolean(buffer.isBuffer());
-				result.writeInt(nioBufferReadable.remaining());
-				result.writeBytes(nioBufferReadable);
+				receiverId.writeTo(headerBuf);
+				headerBuf.writeInt(sequenceNumber);
+				headerBuf.writeInt(backlog);
+				headerBuf.writeBoolean(buffer.isBuffer());
+				headerBuf.writeInt(buffer.readableBytes());
 
-				return result;
+				CompositeByteBuf composityBuf = allocator.compositeDirectBuffer();
+				composityBuf.addComponent(headerBuf);
+				composityBuf.addComponent(buffer);
+				// update writer index since we have data written to the components:
+				composityBuf.writerIndex(headerBuf.writerIndex() + buffer.writerIndex());
+				return composityBuf;
 			}
 			catch (Throwable t) {
-				if (result != null) {
-					result.release();
+				if (headerBuf != null) {
+					headerBuf.release();
 				}
-
-				throw new IOException(t);
-			}
-			finally {
 				buffer.recycleBuffer();
+
+				ExceptionUtils.rethrowIOException(t);
+				return null; // silence the compiler
 			}
 		}
 
