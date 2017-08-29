@@ -44,6 +44,8 @@ public class SlotCountExceedingParallelismTest extends TestLogger {
 	private final static int NUMBER_OF_SLOTS_PER_TM = 2;
 	private final static int PARALLELISM = NUMBER_OF_TMS * NUMBER_OF_SLOTS_PER_TM;
 
+	public static final String JOB_NAME = "SlotCountExceedingParallelismTest (no slot sharing, blocking results)";
+
 	private static TestingCluster flink;
 
 	@BeforeClass
@@ -62,19 +64,23 @@ public class SlotCountExceedingParallelismTest extends TestLogger {
 	}
 
 	@Test
-	public void testNoSlotSharingAndBlockingResult() throws Exception {
-		final String jobName = "SlotCountExceedingParallelismTest (no slot sharing, blocking results)";
-
+	public void testNoSlotSharingAndBlockingResultSender() throws Exception {
 		// Sender with higher parallelism than available slots
-		JobGraph jobGraph = createTestJobGraph(jobName, PARALLELISM * 2, PARALLELISM);
+		JobGraph jobGraph = createTestJobGraph(JOB_NAME, PARALLELISM * 2, PARALLELISM);
 		submitJobGraphAndWait(jobGraph);
+	}
 
+	@Test
+	public void testNoSlotSharingAndBlockingResultReceiver() throws Exception {
 		// Receiver with higher parallelism than available slots
-		jobGraph = createTestJobGraph(jobName, PARALLELISM, PARALLELISM * 2);
+		JobGraph jobGraph = createTestJobGraph(JOB_NAME, PARALLELISM, PARALLELISM * 2);
 		submitJobGraphAndWait(jobGraph);
+	}
 
+	@Test
+	public void testNoSlotSharingAndBlockingResultBoth() throws Exception {
 		// Both sender and receiver with higher parallelism than available slots
-		jobGraph = createTestJobGraph(jobName, PARALLELISM * 2, PARALLELISM * 2);
+		JobGraph jobGraph = createTestJobGraph(JOB_NAME, PARALLELISM * 2, PARALLELISM * 2);
 		submitJobGraphAndWait(jobGraph);
 	}
 
