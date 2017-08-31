@@ -21,8 +21,8 @@ package org.apache.flink.runtime.io.disk.iomanager;
 import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferRecycler;
+import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
 import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
-import org.apache.flink.runtime.testutils.DiscardingRecycler;
 import org.apache.flink.runtime.util.event.NotificationListener;
 
 import org.junit.After;
@@ -47,7 +47,7 @@ public class BufferFileWriterFileSegmentReaderTest {
 
 	private static final int BUFFER_SIZE = 32 * 1024;
 
-	private static final BufferRecycler BUFFER_RECYCLER = new DiscardingRecycler();
+	private static final BufferRecycler BUFFER_RECYCLER = FreeingBufferRecycler.INSTANCE;
 
 	private static final Random random = new Random();
 

@@ -21,8 +21,8 @@ package org.apache.flink.runtime.io.network.util;
 import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferRecycler;
+import org.apache.flink.runtime.io.network.buffer.FreeingBufferRecycler;
 import org.apache.flink.runtime.io.network.buffer.NetworkBuffer;
-import org.apache.flink.runtime.testutils.DiscardingRecycler;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -34,7 +34,7 @@ public class TestBufferFactory {
 
 	public static final int BUFFER_SIZE = 32 * 1024;
 
-	private static final BufferRecycler RECYCLER = new DiscardingRecycler();
+	private static final BufferRecycler RECYCLER = FreeingBufferRecycler.INSTANCE;
 
 	private final int bufferSize;
 
