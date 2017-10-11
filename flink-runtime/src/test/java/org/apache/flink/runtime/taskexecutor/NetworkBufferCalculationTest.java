@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.taskexecutor;
 
+import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.core.memory.MemoryType;
 import org.apache.flink.runtime.taskmanager.NetworkEnvironmentConfiguration;
@@ -106,6 +107,8 @@ public class NetworkBufferCalculationTest extends TestLogger {
 			memType,
 			false,
 			managedMemoryFraction,
-			0);
+			0,
+			false,
+			Time.seconds(1));
 	}
 }

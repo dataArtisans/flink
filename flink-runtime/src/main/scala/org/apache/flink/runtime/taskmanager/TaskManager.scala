@@ -1876,13 +1876,23 @@ object TaskManager {
 
       // if desired, start the logging daemon that periodically logs the
       // memory usage information
-      if (LOG.isInfoEnabled && configuration.getBoolean(
-        TaskManagerOptions.DEBUG_MEMORY_LOG))
-      {
+      val logMemory = configuration.getBoolean(
+        TaskManagerOptions.DEBUG_MEMORY_LOG)
+      val additionalLogging =
+        configuration.getBoolean(
+          TaskManagerOptions.ADDITIONAL_LOGGING.key(),
+          TaskManagerOptions.ADDITIONAL_LOGGING.defaultValue())
+
+      if (LOG.isInfoEnabled && (logMemory || additionalLogging)){
         LOG.info("Starting periodic memory usage logger")
 
-        val interval = configuration.getLong(
-          TaskManagerOptions.DEBUG_MEMORY_USAGE_LOG_INTERVAL_MS)
+        val interval =if (additionalLogging) {
+            configuration.getLong(
+              TaskManagerOptions.ADDITIONAL_LOGGING_INTERVAL.key(),
+              TaskManagerOptions.ADDITIONAL_LOGGING_INTERVAL.defaultValue())
+          }
+          else { configuration.getLong(
+          TaskManagerOptions.DEBUG_MEMORY_USAGE_LOG_INTERVAL_MS)}
 
         val logger = new MemoryLogger(LOG.logger, interval, taskManagerSystem)
         logger.start()

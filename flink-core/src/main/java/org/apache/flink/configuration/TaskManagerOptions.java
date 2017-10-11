@@ -169,6 +169,21 @@ public class TaskManagerOptions {
 			.withDeprecatedKeys("taskmanager.debug.memory.logIntervalMs")
 			.withDescription("The interval (in ms) for the log thread to log the current memory usage.");
 
+	/**
+	 * Whether TaskManager should log additional metrics (such as system resources).
+	 */
+	public static final ConfigOption<Boolean> ADDITIONAL_LOGGING =
+		key("taskmanager.debug.additional-logging")
+			.defaultValue(false);
+
+	/**
+	 * Interval between probing of additional metrics specified in milliseconds. Has an effect only when
+	 * {@link #ADDITIONAL_LOGGING} is enabled.
+	 */
+	public static final ConfigOption<Long> ADDITIONAL_LOGGING_INTERVAL =
+		key("taskmanager.debug.additional-logging-interval")
+			.defaultValue(5000L);
+
 	// ------------------------------------------------------------------------
 	//  Managed Memory Options
 	// ------------------------------------------------------------------------

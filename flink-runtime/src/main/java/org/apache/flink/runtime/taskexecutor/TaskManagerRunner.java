@@ -43,6 +43,7 @@ import org.apache.flink.runtime.rpc.akka.AkkaRpcService;
 import org.apache.flink.runtime.rpc.akka.AkkaRpcServiceUtils;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.taskexecutor.utils.SystemResourcesMetricsInitializer;
 import org.apache.flink.runtime.util.EnvironmentInformation;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.runtime.util.Hardware;
@@ -350,6 +351,12 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 			taskManagerServices.getNetworkEnvironment());
 
 		TaskManagerConfiguration taskManagerConfiguration = TaskManagerConfiguration.fromConfiguration(configuration);
+
+		if (taskManagerServicesConfiguration.isSystemResourcesLoggingEnabled()) {
+			SystemResourcesMetricsInitializer.instantiateSystemMetrics(
+				taskManagerMetricGroup,
+				taskManagerServicesConfiguration.getSystemResourcesLoggingInterval());
+		}
 
 		return new TaskExecutor(
 			rpcService,

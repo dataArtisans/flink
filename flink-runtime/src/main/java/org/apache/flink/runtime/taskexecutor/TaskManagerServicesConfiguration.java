@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.taskexecutor;
 
+import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
@@ -80,6 +81,10 @@ public class TaskManagerServicesConfiguration {
 
 	private final boolean localRecoveryEnabled;
 
+	private boolean systemResourcesLoggingEnabled;
+
+	private Time systemResourcesLoggingInterval;
+
 	public TaskManagerServicesConfiguration(
 			InetAddress taskManagerAddress,
 			String[] tmpDirPaths,
@@ -92,7 +97,9 @@ public class TaskManagerServicesConfiguration {
 			MemoryType memoryType,
 			boolean preAllocateMemory,
 			float memoryFraction,
-			long timerServiceShutdownTimeout) {
+			long timerServiceShutdownTimeout,
+			boolean systemResourcesLoggingEnabled,
+			Time systemResourcesLoggingInterval) {
 
 		this.taskManagerAddress = checkNotNull(taskManagerAddress);
 		this.tmpDirPaths = checkNotNull(tmpDirPaths);
@@ -110,6 +117,9 @@ public class TaskManagerServicesConfiguration {
 		checkArgument(timerServiceShutdownTimeout >= 0L, "The timer " +
 			"service shutdown timeout must be greater or equal to 0.");
 		this.timerServiceShutdownTimeout = timerServiceShutdownTimeout;
+
+		this.systemResourcesLoggingEnabled = systemResourcesLoggingEnabled;
+		this.systemResourcesLoggingInterval = checkNotNull(systemResourcesLoggingInterval);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -174,6 +184,14 @@ public class TaskManagerServicesConfiguration {
 
 	public long getTimerServiceShutdownTimeout() {
 		return timerServiceShutdownTimeout;
+	}
+
+	public boolean isSystemResourcesLoggingEnabled() {
+		return systemResourcesLoggingEnabled;
+	}
+
+	public Time getSystemResourcesLoggingInterval() {
+		return systemResourcesLoggingInterval;
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -249,6 +267,10 @@ public class TaskManagerServicesConfiguration {
 
 		long timerServiceShutdownTimeout = AkkaUtils.getTimeout(configuration).toMillis();
 
+		boolean systemResourcesLoggingEnabled = configuration.getBoolean(TaskManagerOptions.ADDITIONAL_LOGGING);
+
+		Time systemResourcesLoggingInterval = Time.milliseconds(configuration.getLong(TaskManagerOptions.ADDITIONAL_LOGGING_INTERVAL));
+
 		return new TaskManagerServicesConfiguration(
 			remoteAddress,
 			tmpDirs,
@@ -261,7 +283,9 @@ public class TaskManagerServicesConfiguration {
 			memType,
 			preAllocateMemory,
 			memoryFraction,
-			timerServiceShutdownTimeout);
+			timerServiceShutdownTimeout,
+			systemResourcesLoggingEnabled,
+			systemResourcesLoggingInterval);
 	}
 
 	// --------------------------------------------------------------------------
