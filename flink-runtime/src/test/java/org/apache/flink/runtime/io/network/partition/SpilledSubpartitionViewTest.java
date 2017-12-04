@@ -25,7 +25,6 @@ import org.apache.flink.runtime.io.network.api.EndOfPartitionEvent;
 import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
 import org.apache.flink.runtime.io.network.util.TestConsumerCallback;
-import org.apache.flink.runtime.io.network.util.TestInfiniteBufferProvider;
 import org.apache.flink.runtime.io.network.util.TestPooledBufferProvider;
 import org.apache.flink.runtime.io.network.util.TestSubpartitionConsumer;
 
@@ -52,8 +51,7 @@ public class SpilledSubpartitionViewTest {
 
 	private static final IOManager IO_MANAGER = new IOManagerAsync();
 
-	private static final TestInfiniteBufferProvider writerBufferPool =
-		new TestInfiniteBufferProvider();
+	private static final TestPooledBufferProvider writerBufferPool = new TestPooledBufferProvider(Integer.MAX_VALUE);
 
 	@AfterClass
 	public static void shutdown() {
