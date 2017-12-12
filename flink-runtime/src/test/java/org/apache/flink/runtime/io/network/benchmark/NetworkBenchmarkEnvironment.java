@@ -48,7 +48,7 @@ import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 import org.apache.flink.runtime.io.network.partition.consumer.SingleInputGate;
 import org.apache.flink.runtime.io.network.partition.consumer.UnionInputGate;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.operators.testutils.UnregisteredTaskMetricsGroup.DummyTaskIOMetricGroup;
+import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.runtime.query.KvStateRegistry;
 import org.apache.flink.runtime.taskmanager.TaskActions;
 import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
@@ -192,7 +192,6 @@ public class NetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 			new NoOpResultPartitionConsumableNotifier(),
 			ioManager,
 			false);
-		ResultPartitionWriter partitionWriter = new ResultPartitionWriter(resultPartition);
 
 		// similar to NetworkEnvironment#registerTask()
 		int numBuffers = resultPartition.getNumberOfSubpartitions() *
@@ -204,7 +203,7 @@ public class NetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 
 		environment.getResultPartitionManager().registerResultPartition(resultPartition);
 
-		return partitionWriter;
+		return resultPartition;
 	}
 
 	private InputGate createInputGate(
@@ -237,7 +236,7 @@ public class NetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 				gateDescriptor,
 				environment,
 				new NoOpTaskActions(),
-				new DummyTaskIOMetricGroup());
+				UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
 
 			// similar to NetworkEnvironment#registerTask()
 			int numBuffers = gate.getNumberOfInputChannels() *
