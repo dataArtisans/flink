@@ -26,7 +26,6 @@ import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -53,9 +52,8 @@ public class BufferTest extends AbstractByteBufTest {
 		final MemorySegment segment =
 			MemorySegmentFactory
 				.allocateUnpooledSegment(Math.min(maxCapacity, MAX_CAPACITY_UPPER_BOUND));
-		final BufferRecycler recycler = Mockito.mock(BufferRecycler.class);
 
-		NetworkBuffer buffer = new NetworkBuffer(segment, recycler);
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
 		buffer.capacity(length);
 		buffer.setAllocator(NETTY_BUFFER_POOL);
 
@@ -68,16 +66,15 @@ public class BufferTest extends AbstractByteBufTest {
 	@Test
 	public void testSetGetSize() {
 		final MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(1024);
-		final BufferRecycler recycler = Mockito.mock(BufferRecycler.class);
 
-		NetworkBuffer buffer = new NetworkBuffer(segment, recycler);
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
 		Assert.assertEquals(segment.size(), buffer.getSize());
 		Assert.assertEquals(segment.size(), buffer.maxCapacity());
 		// writer index should not reflect size
 		assertEquals(0, buffer.writerIndex());
 		assertEquals(0, buffer.readerIndex());
 
-		buffer = new NetworkBuffer(segment, recycler, true, 10);
+		buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE, true, 10);
 		Assert.assertEquals(segment.size(), buffer.getSize());
 		Assert.assertEquals(segment.size(), buffer.maxCapacity());
 		// writer index should not reflect size
@@ -88,9 +85,8 @@ public class BufferTest extends AbstractByteBufTest {
 	@Test
 	public void testgetNioBufferReadableThreadSafe() {
 		final MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(1024);
-		final BufferRecycler recycler = Mockito.mock(BufferRecycler.class);
 
-		NetworkBuffer buffer = new NetworkBuffer(segment, recycler);
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
 
 		ByteBuffer buf1 = buffer.getNioBufferReadable();
 		ByteBuffer buf2 = buffer.getNioBufferReadable();
@@ -104,9 +100,8 @@ public class BufferTest extends AbstractByteBufTest {
 	@Test
 	public void testgetNioBufferThreadSafe() {
 		final MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(1024);
-		final BufferRecycler recycler = Mockito.mock(BufferRecycler.class);
 
-		NetworkBuffer buffer = new NetworkBuffer(segment, recycler);
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
 
 		ByteBuffer buf1 = buffer.getNioBuffer(0, 10);
 		ByteBuffer buf2 = buffer.getNioBuffer(0, 10);
