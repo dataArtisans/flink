@@ -28,28 +28,28 @@ import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 @SuppressWarnings("unused")
 public class DroppingNonDeserializingLongReceiver extends ReceiverThread {
 
-    private final InputGate inputGate;
+	private final InputGate inputGate;
 
-    public DroppingNonDeserializingLongReceiver(InputGate inputGate, int expectedRepetitionsOfExpectedRecord) {
-        super(expectedRepetitionsOfExpectedRecord);
-        this.inputGate = inputGate;
-    }
+	public DroppingNonDeserializingLongReceiver(InputGate inputGate, int expectedRepetitionsOfExpectedRecord) {
+		super(expectedRepetitionsOfExpectedRecord);
+		this.inputGate = inputGate;
+	}
 
-    protected void readRecords(long remaining) throws Exception {
-        LOG.debug("readRecords(remaining = {})", remaining);
-        // assume LongValue instances here (4 bytes length, 8 bytes long)
-        final long expectedBytes = remaining * 12;
+	protected void readRecords(long remaining) throws Exception {
+		LOG.debug("readRecords(remaining = {})", remaining);
+		// assume LongValue instances here (4 bytes length, 8 bytes long)
+		final long expectedBytes = remaining * 12;
 
-        long readBytes = 0;
+		long readBytes = 0;
 
-        while (running && readBytes < expectedBytes) {
-            BufferOrEvent input = inputGate.getNextBufferOrEvent();
-            if (input.isBuffer()) {
-                Buffer buffer = input.getBuffer();
-                readBytes += buffer.getSize();
-                buffer.recycle();
-            }
-        }
+		while (running && readBytes < expectedBytes) {
+			BufferOrEvent input = inputGate.getNextBufferOrEvent();
+			if (input.isBuffer()) {
+				Buffer buffer = input.getBuffer();
+				readBytes += buffer.getSize();
+				buffer.recycle();
+			}
+		}
 
-    }
+	}
 }

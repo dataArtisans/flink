@@ -39,7 +39,7 @@ public class NetworkBenchmarkTests {
 	@Test
 	public void pointToMultiPointBenchmark() throws Exception {
 		NetworkBenchmark benchmark = new NetworkBenchmark();
-		benchmark.setUp(4,1000);
+		benchmark.setUp(4, 1000);
 		try {
 			benchmark.executeThroughputBenchmark(5000000);
 			benchmark.executeThroughputBenchmark(5000000);

@@ -28,74 +28,74 @@ import org.apache.flink.types.LongValue;
  */
 public class SerializingLongReceiver extends ReceiverThread {
 
-    private long maxLatency = Long.MIN_VALUE;
-    private long minLatency = Long.MAX_VALUE;
-    private long sumLatency;
-    private long sumLatencySquare;
-    private int numSamples;
+	private long maxLatency = Long.MIN_VALUE;
+	private long minLatency = Long.MAX_VALUE;
+	private long sumLatency;
+	private long sumLatencySquare;
+	private int numSamples;
 
-    private final MutableRecordReader<LongValue> reader;
+	private final MutableRecordReader<LongValue> reader;
 
-    public SerializingLongReceiver(InputGate inputGate, int expectedRepetitionsOfExpectedRecord) {
-        super(expectedRepetitionsOfExpectedRecord);
-        this.reader = new MutableRecordReader<>(
-            inputGate,
-            new String[]{
-                EnvironmentInformation.getTemporaryFileDirectory()
-            });
-    }
+	public SerializingLongReceiver(InputGate inputGate, int expectedRepetitionsOfExpectedRecord) {
+		super(expectedRepetitionsOfExpectedRecord);
+		this.reader = new MutableRecordReader<>(
+			inputGate,
+			new String[]{
+				EnvironmentInformation.getTemporaryFileDirectory()
+			});
+	}
 
-    protected void readRecords(long lastExpectedRecord) throws Exception {
-        LOG.debug("readRecords(lastExpectedRecord = {})", lastExpectedRecord);
-        final LongValue value = new LongValue();
+	protected void readRecords(long lastExpectedRecord) throws Exception {
+		LOG.debug("readRecords(lastExpectedRecord = {})", lastExpectedRecord);
+		final LongValue value = new LongValue();
 
-        while (running && reader.next(value)) {
-            final long ts = value.getValue();
-            if (ts == lastExpectedRecord) {
-                expectedRecordCounter++;
-                if (expectedRecordCounter == expectedRepetitionsOfExpectedRecord) {
-                    break;
-                }
-            }
-            if (ts != 0) {
-                final long latencyNanos = System.nanoTime() - ts;
+		while (running && reader.next(value)) {
+			final long ts = value.getValue();
+			if (ts == lastExpectedRecord) {
+				expectedRecordCounter++;
+				if (expectedRecordCounter == expectedRepetitionsOfExpectedRecord) {
+					break;
+				}
+			}
+			if (ts != 0) {
+				final long latencyNanos = System.nanoTime() - ts;
 
-                maxLatency = Math.max(maxLatency, latencyNanos);
-                minLatency = Math.min(minLatency, latencyNanos);
-                sumLatency += latencyNanos;
-                sumLatencySquare += latencyNanos * latencyNanos;
-                numSamples++;
-            }
-        }
+				maxLatency = Math.max(maxLatency, latencyNanos);
+				minLatency = Math.min(minLatency, latencyNanos);
+				sumLatency += latencyNanos;
+				sumLatencySquare += latencyNanos * latencyNanos;
+				numSamples++;
+			}
+		}
 
-    }
+	}
 
-    public long getMaxLatency() {
-        return maxLatency == Long.MIN_VALUE ? 0 : maxLatency;
-    }
+	public long getMaxLatency() {
+		return maxLatency == Long.MIN_VALUE ? 0 : maxLatency;
+	}
 
-    public long getMinLatency() {
-        return minLatency == Long.MAX_VALUE ? 0 : minLatency;
-    }
+	public long getMinLatency() {
+		return minLatency == Long.MAX_VALUE ? 0 : minLatency;
+	}
 
-    public long getAvgLatency() {
-        return numSamples == 0 ? 0 : sumLatency / numSamples;
-    }
+	public long getAvgLatency() {
+		return numSamples == 0 ? 0 : sumLatency / numSamples;
+	}
 
-    public long getAvgLatencyNoExtremes() {
-        return (numSamples > 2) ? (sumLatency - maxLatency - minLatency) / (numSamples - 2) : 0;
-    }
+	public long getAvgLatencyNoExtremes() {
+		return (numSamples > 2) ? (sumLatency - maxLatency - minLatency) / (numSamples - 2) : 0;
+	}
 
-    public long getStandardDeviationLatency() {
-        return numSamples == 0 ? 0 : (long) Math.sqrt(
-            sumLatencySquare / numSamples - sumLatency * sumLatency /
-                (numSamples * numSamples));
-    }
+	public long getStandardDeviationLatency() {
+		return numSamples == 0 ? 0 : (long) Math.sqrt(
+			sumLatencySquare / numSamples - sumLatency * sumLatency /
+				(numSamples * numSamples));
+	}
 
-    @Override
-    public String toString() {
-        return String.format("Receiver[avg=%d (%d), min=%d, max=%d, stddev=%d]",
-            getAvgLatency(), getAvgLatencyNoExtremes(), getMinLatency(), getMaxLatency(),
-            getStandardDeviationLatency());
-    }
+	@Override
+	public String toString() {
+		return String.format("Receiver[avg=%d (%d), min=%d, max=%d, stddev=%d]",
+			getAvgLatency(), getAvgLatencyNoExtremes(), getMinLatency(), getMaxLatency(),
+			getStandardDeviationLatency());
+	}
 }

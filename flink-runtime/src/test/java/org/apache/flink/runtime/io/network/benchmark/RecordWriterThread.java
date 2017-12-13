@@ -60,12 +60,12 @@ public class RecordWriterThread extends CheckedThread {
 		recordsToSend = new CompletableFuture<>();
 	}
 
-    @Override
-    public void go() throws Exception {
+	@Override
+	public void go() throws Exception {
 		while (running) {
 			sendRecords(getRecordsToSend().get());
 		}
-    }
+	}
 
 	private void sendRecords(long records) throws IOException, InterruptedException {
 		LongValue value = new LongValue(0);
