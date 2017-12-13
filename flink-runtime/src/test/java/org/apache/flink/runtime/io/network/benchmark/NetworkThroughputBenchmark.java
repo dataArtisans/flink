@@ -24,42 +24,63 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Context for network benchmarks executed in flink-benchmark.
+ * Network throughput benchmarks executed by the external
+ * <a href="https://github.com/dataArtisans/flink-benchmarks">flink-benchmarks</a> project.
  */
-public class NetworkBenchmark {
+public class NetworkThroughputBenchmark {
 	private static final long RECEIVER_TIMEOUT = 30_000;
 
-	protected NetworkBenchmarkEnvironment<LongValue> environment;
-	protected ReceiverThread receiver;
-	protected RecordWriterThread[] writerThreads;
+	private NetworkBenchmarkEnvironment<LongValue> environment;
+	private ReceiverThread receiver;
+	private LongRecordWriterThread[] writerThreads;
 
-	public void executeThroughputBenchmark(long records) throws Exception {
+	/**
+	 * Executes the throughput benchmark with the given number of records.
+	 *
+	 * @param records
+	 * 		records to pass through the network stack
+	 */
+	public void executeBenchmark(long records) throws Exception {
 		final LongValue value = new LongValue();
 		value.setValue(0);
 
 		long lastRecord = records / writerThreads.length;
 		CompletableFuture<?> recordsReceived = receiver.setExpectedRecord(lastRecord);
 
-		for (RecordWriterThread writerThread : writerThreads) {
+		for (LongRecordWriterThread writerThread : writerThreads) {
 			writerThread.setRecordsToSend(lastRecord);
 		}
 
 		recordsReceived.get(RECEIVER_TIMEOUT, TimeUnit.MILLISECONDS);
 	}
 
+	/**
+	 * Initializes the throughput benchmark with the given parameters.
+	 *
+	 * @param recordWriters
+	 * 		number of senders, i.e.
+	 * 		{@link org.apache.flink.runtime.io.network.api.writer.RecordWriter} instances
+	 * @param channels
+	 * 		number of outgoing channels / receivers
+	 */
 	public void setUp(int recordWriters, int channels) throws Exception {
 		environment = new NetworkBenchmarkEnvironment<>();
 		environment.setUp(recordWriters, channels);
-		receiver = environment.createReceiver(SerializingLongReceiver.class);
-		writerThreads = new RecordWriterThread[recordWriters];
+		receiver = environment.createReceiver();
+		writerThreads = new LongRecordWriterThread[recordWriters];
 		for (int writer = 0; writer < recordWriters; writer++) {
-			writerThreads[writer] = new RecordWriterThread(environment.createRecordWriter(writer));
+			writerThreads[writer] = new LongRecordWriterThread(environment.createRecordWriter(writer));
 			writerThreads[writer].start();
 		}
 	}
 
+	/**
+	 * Shuts down a benchmark previously set up via {@link #setUp}.
+	 *
+	 * <p>This will wait for all senders to finish but timeout with an exception after 5 seconds.
+	 */
 	public void tearDown() throws Exception {
-		for (RecordWriterThread writerThread : writerThreads) {
+		for (LongRecordWriterThread writerThread : writerThreads) {
 			writerThread.shutdown();
 			writerThread.sync(5000);
 		}

@@ -61,7 +61,8 @@ import java.util.Arrays;
 import static org.apache.flink.util.ExceptionUtils.suppressExceptions;
 
 /**
- * Context for network benchmarks executed in flink-benchmark.
+ * Context for network benchmarks executed by the external
+ * <a href="https://github.com/dataArtisans/flink-benchmarks">flink-benchmarks</a> project.
  */
 public class NetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 
@@ -112,7 +113,7 @@ public class NetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 		suppressExceptions(ioManager::shutdown);
 	}
 
-	public <C extends ReceiverThread> C createReceiver(Class<C> clazz) throws Exception {
+	public SerializingLongReceiver createReceiver() throws Exception {
 		TaskManagerLocation senderLocation = new TaskManagerLocation(
 			ResourceID.generate(),
 			LOCAL_ADDRESS,
@@ -126,15 +127,7 @@ public class NetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 			receiverEnv,
 			channels);
 
-		final C receiver;
-		// avoid reflection or duplicates (as enum values) here
-		if (clazz == SerializingLongReceiver.class) {
-			receiver = (C) new SerializingLongReceiver(receiverGate, channels * partitionIds.length);
-		} else if (clazz == DroppingNonDeserializingLongReceiver.class) {
-			receiver = (C) new DroppingNonDeserializingLongReceiver(receiverGate, channels * partitionIds.length);
-		} else {
-			throw new UnsupportedOperationException("No receiver class " + clazz);
-		}
+		SerializingLongReceiver receiver = new SerializingLongReceiver(receiverGate, channels * partitionIds.length);
 
 		receiver.start();
 		return receiver;

@@ -21,15 +21,15 @@ package org.apache.flink.runtime.io.network.benchmark;
 import org.junit.Test;
 
 /**
- * Tests for various network benchmarks based on {@link NetworkBenchmarkEnvironment}.
+ * Tests for various network benchmarks based on {@link NetworkThroughputBenchmark}.
  */
-public class NetworkBenchmarkTests {
+public class NetworkThroughputBenchmarkTests {
 	@Test
 	public void pointToPointBenchmark() throws Exception {
-		NetworkBenchmark benchmark = new NetworkBenchmark();
+		NetworkThroughputBenchmark benchmark = new NetworkThroughputBenchmark();
 		benchmark.setUp(1, 1);
 		try {
-			benchmark.executeThroughputBenchmark(1_000);
+			benchmark.executeBenchmark(1_000);
 		}
 		finally {
 			benchmark.tearDown();
@@ -38,11 +38,34 @@ public class NetworkBenchmarkTests {
 
 	@Test
 	public void pointToMultiPointBenchmark() throws Exception {
-		NetworkBenchmark benchmark = new NetworkBenchmark();
-		benchmark.setUp(4, 1000);
+		NetworkThroughputBenchmark benchmark = new NetworkThroughputBenchmark();
+		benchmark.setUp(1, 100);
 		try {
-			benchmark.executeThroughputBenchmark(5000000);
-			benchmark.executeThroughputBenchmark(5000000);
+			benchmark.executeBenchmark(1_000);
+		}
+		finally {
+			benchmark.tearDown();
+		}
+	}
+
+	@Test
+	public void multiPointToPointBenchmark() throws Exception {
+		NetworkThroughputBenchmark benchmark = new NetworkThroughputBenchmark();
+		benchmark.setUp(4, 1);
+		try {
+			benchmark.executeBenchmark(1_000);
+		}
+		finally {
+			benchmark.tearDown();
+		}
+	}
+
+	@Test
+	public void multiPointToMultiPointBenchmark() throws Exception {
+		NetworkThroughputBenchmark benchmark = new NetworkThroughputBenchmark();
+		benchmark.setUp(4, 100);
+		try {
+			benchmark.executeBenchmark(1_000);
 		}
 		finally {
 			benchmark.tearDown();

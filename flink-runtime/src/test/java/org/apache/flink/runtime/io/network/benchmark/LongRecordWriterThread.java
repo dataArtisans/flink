@@ -29,16 +29,20 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * Wrapping thread around {@link RecordWriter} that sends requested number of records.
+ * Wrapping thread around {@link RecordWriter} that sends a fixed number of <tt>LongValue(0)</tt>
+ * records.
  */
-public class RecordWriterThread extends CheckedThread {
+public class LongRecordWriterThread extends CheckedThread {
 	private final RecordWriter<LongValue> recordWriter;
 
+	/**
+	 * Future to wait on a definition of the number of records to send.
+	 */
 	private CompletableFuture<Long> recordsToSend = new CompletableFuture<>();
 
 	private volatile boolean running = true;
 
-	public RecordWriterThread(RecordWriter<LongValue> recordWriter) {
+	public LongRecordWriterThread(RecordWriter<LongValue> recordWriter) {
 		this.recordWriter = checkNotNull(recordWriter);
 	}
 
@@ -47,6 +51,14 @@ public class RecordWriterThread extends CheckedThread {
 		recordsToSend.complete(0L);
 	}
 
+	/**
+	 * Initializes the record writer thread with this many numbers to send.
+	 *
+	 * <p>If the thread was already started, if may now continue.
+	 *
+	 * @param records
+	 * 		number of records to send
+	 */
 	public synchronized void setRecordsToSend(long records) {
 		checkState(!recordsToSend.isDone());
 		recordsToSend.complete(records);
