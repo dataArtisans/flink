@@ -37,7 +37,7 @@ import org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannel
 import org.apache.flink.runtime.io.network.partition.consumer.SingleInputGate;
 import org.apache.flink.runtime.io.network.util.TestBufferFactory;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.operators.testutils.UnregisteredTaskMetricsGroup;
+import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.runtime.taskmanager.TaskActions;
 
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
@@ -408,7 +408,7 @@ public class PartitionRequestClientHandlerTest {
 			0,
 			1,
 			mock(TaskActions.class),
-			new UnregisteredTaskMetricsGroup.DummyTaskIOMetricGroup());
+			UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
 	}
 
 	/**
@@ -431,7 +431,7 @@ public class PartitionRequestClientHandlerTest {
 			connectionManager,
 			0,
 			0,
-			new UnregisteredTaskMetricsGroup.DummyTaskIOMetricGroup());
+			UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
 	}
 
 	/**
