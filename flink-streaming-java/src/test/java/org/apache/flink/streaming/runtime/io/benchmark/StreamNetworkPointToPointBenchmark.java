@@ -27,15 +27,24 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Context for network benchmarks executed in flink-benchmark.
+ * Streaming point-to-point latency network benchmarks executed by the external
+ * <a href="https://github.com/dataArtisans/flink-benchmarks">flink-benchmarks</a> project.
  */
 public class StreamNetworkPointToPointBenchmark {
 	private static final long RECEIVER_TIMEOUT = 2000;
 
-	protected StreamNetworkBenchmarkEnvironment<LongValue> environment;
-	protected ReceiverThread receiver;
-	protected RecordWriter recordWriter;
+	private StreamNetworkBenchmarkEnvironment<LongValue> environment;
+	private ReceiverThread receiver;
+	private RecordWriter<LongValue> recordWriter;
 
+	/**
+	 * Executes the latency benchmark with the given number of records.
+	 *
+	 * @param records
+	 * 		records to pass through the network stack
+	 * @param flushAfterLastEmit
+	 * 		whether to flush the {@link RecordWriter} after the last record
+	 */
 	public void executeBenchmark(long records, boolean flushAfterLastEmit) throws Exception {
 		final LongValue value = new LongValue();
 		value.setValue(0);
@@ -54,17 +63,26 @@ public class StreamNetworkPointToPointBenchmark {
 		recordsReceived.get(RECEIVER_TIMEOUT, TimeUnit.MILLISECONDS);
 	}
 
+	/**
+	 * Initializes the throughput benchmark with the given parameters.
+	 *
+	 * @param flushTimeout
+	 * 		output flushing interval of the
+	 * 		{@link org.apache.flink.streaming.runtime.io.StreamRecordWriter}'s output flusher thread
+	 */
 	public void setUp(long flushTimeout) throws Exception {
 		environment = new StreamNetworkBenchmarkEnvironment<>();
 		environment.setUp(1, 1);
 
-		receiver = environment.createReceiver(SerializingLongReceiver.class);
+		receiver = environment.createReceiver();
 		recordWriter = environment.createStreamRecordWriter(0, flushTimeout);
 	}
 
+	/**
+	 * Shuts down a benchmark previously set up via {@link #setUp}.
+	 */
 	public void tearDown() {
 		environment.tearDown();
-
 		receiver.shutdown();
 	}
 }

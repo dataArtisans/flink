@@ -26,12 +26,15 @@ import org.apache.flink.runtime.io.network.benchmark.NetworkBenchmarkEnvironment
 import org.apache.flink.streaming.runtime.io.StreamRecordWriter;
 
 /**
- * Context for stream network benchmarks executed in flink-benchmark.
+ * Context for stream network benchmarks executed by the external
+ * <a href="https://github.com/dataArtisans/flink-benchmarks">flink-benchmarks</a> project.
  */
 public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> extends NetworkBenchmarkEnvironment<T> {
 
-	public RecordWriter<T> createStreamRecordWriter(int partitionIndex, long flushTimeout) throws Exception {
-		ResultPartitionWriter sender = createResultPartition(jobId, partitionIds[partitionIndex], senderEnv, channels);
-		return new StreamRecordWriter<T>(sender,  new RoundRobinChannelSelector<T>(), flushTimeout);
+	public RecordWriter<T> createStreamRecordWriter(int partitionIndex, long flushTimeout)
+			throws Exception {
+		ResultPartitionWriter sender =
+			createResultPartition(jobId, partitionIds[partitionIndex], senderEnv, channels);
+		return new StreamRecordWriter<>(sender, new RoundRobinChannelSelector<>(), flushTimeout);
 	}
 }
