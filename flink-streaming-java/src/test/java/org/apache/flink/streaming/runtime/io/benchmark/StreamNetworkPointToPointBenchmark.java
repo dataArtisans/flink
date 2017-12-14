@@ -20,7 +20,6 @@ package org.apache.flink.streaming.runtime.io.benchmark;
 
 import org.apache.flink.runtime.io.network.api.writer.RecordWriter;
 import org.apache.flink.runtime.io.network.benchmark.ReceiverThread;
-import org.apache.flink.runtime.io.network.benchmark.SerializingLongReceiver;
 import org.apache.flink.types.LongValue;
 
 import java.util.concurrent.CompletableFuture;
