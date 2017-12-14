@@ -28,17 +28,13 @@ import org.apache.flink.runtime.accumulators.AccumulatorRegistry;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
 import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
-import org.apache.flink.runtime.event.AbstractEvent;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
-import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
-import org.apache.flink.runtime.io.network.api.serialization.RecordDeserializer;
 import org.apache.flink.runtime.io.network.api.writer.RecordOrEventCollectingResultPartitionWriter;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
-import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 import org.apache.flink.runtime.io.network.util.TestPooledBufferProvider;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -47,8 +43,6 @@ import org.apache.flink.runtime.memory.MemoryManager;
 import org.apache.flink.runtime.metrics.groups.TaskMetricGroup;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.runtime.operators.testutils.MockInputSplitProvider;
-import org.apache.flink.runtime.plugable.DeserializationDelegate;
-import org.apache.flink.runtime.plugable.NonReusingDeserializationDelegate;
 import org.apache.flink.runtime.query.KvStateRegistry;
 import org.apache.flink.runtime.query.TaskKvStateRegistry;
 import org.apache.flink.runtime.taskmanager.TaskManagerRuntimeInfo;
@@ -59,7 +53,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.Future;
 
 import static org.junit.Assert.fail;
@@ -146,44 +139,6 @@ public class StreamMockEnvironment implements Environment {
 		catch (Throwable t) {
 			t.printStackTrace();
 			fail(t.getMessage());
-		}
-	}
-
-	/**
-	 * Adds the object behind the given <tt>buffer</tt> to the <tt>outputList</tt>.
-	 *
-	 * @param recordDeserializer de-serializer to use for the buffer
-	 * @param delegate de-serialization delegate to use for non-event buffers
-	 * @param buffer the buffer to add
-	 * @param outputList the output list to add the object to
-	 * @param <T> type of the objects behind the non-event buffers
-	 *
-	 * @throws java.io.IOException
-	 */
-	private <T> void addBufferToOutputList(
-		RecordDeserializer<DeserializationDelegate<T>> recordDeserializer,
-		NonReusingDeserializationDelegate<T> delegate, Buffer buffer,
-		final Queue<Object> outputList) throws java.io.IOException {
-		if (buffer.isBuffer()) {
-			recordDeserializer.setNextBuffer(buffer);
-
-			while (recordDeserializer.hasUnfinishedData()) {
-				RecordDeserializer.DeserializationResult result =
-					recordDeserializer.getNextRecord(delegate);
-
-				if (result.isFullRecord()) {
-					outputList.add(delegate.getInstance());
-				}
-
-				if (result == RecordDeserializer.DeserializationResult.LAST_RECORD_FROM_BUFFER
-					|| result == RecordDeserializer.DeserializationResult.PARTIAL_RECORD) {
-					break;
-				}
-			}
-		} else {
-			// is event
-			AbstractEvent event = EventSerializer.fromBuffer(buffer, getClass().getClassLoader());
-			outputList.add(event);
 		}
 	}
 
