@@ -39,6 +39,7 @@ import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
 import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.io.network.util.TestPooledBufferProvider;
 import org.apache.flink.runtime.io.network.util.TestTaskEvent;
+import org.apache.flink.runtime.operators.testutils.ExpectedTestException;
 import org.apache.flink.runtime.testutils.DiscardingRecycler;
 import org.apache.flink.types.IntValue;
 import org.apache.flink.util.XORShiftRandom;
@@ -193,7 +194,7 @@ public class RecordWriterTest {
 					Buffer buffer = (Buffer) invocation.getArguments()[0];
 					buffer.recycle();
 
-					throw new ExpectedException("Expected test Exception");
+					throw new ExpectedTestException();
 				}
 			}).when(partitionWriter).writeBuffer(any(Buffer.class), anyInt());
 
@@ -214,7 +215,7 @@ public class RecordWriterTest {
 					recordWriter.emit(new IntValue(0));
 				}
 			}
-			catch (ExpectedException e) {
+			catch (ExpectedTestException e) {
 				// Verify that the buffer is not part of the record writer state after a failure
 				// to flush it out. If the buffer is still part of the record writer state, this
 				// will fail, because the buffer has already been recycled. NOTE: The mock
@@ -234,7 +235,7 @@ public class RecordWriterTest {
 
 				Assert.fail("Did not throw expected test Exception");
 			}
-			catch (ExpectedException e) {
+			catch (ExpectedTestException e) {
 				recordWriter.clearBuffers();
 			}
 
@@ -251,7 +252,7 @@ public class RecordWriterTest {
 					recordWriter.broadcastEmit(new IntValue(0));
 				}
 			}
-			catch (ExpectedException e) {
+			catch (ExpectedTestException e) {
 				recordWriter.clearBuffers();
 			}
 
@@ -267,7 +268,7 @@ public class RecordWriterTest {
 
 				Assert.fail("Did not throw expected test Exception");
 			}
-			catch (ExpectedException e) {
+			catch (ExpectedTestException e) {
 				recordWriter.clearBuffers();
 			}
 
@@ -283,7 +284,7 @@ public class RecordWriterTest {
 
 				Assert.fail("Did not throw expected test Exception");
 			}
-			catch (ExpectedException e) {
+			catch (ExpectedTestException e) {
 				recordWriter.clearBuffers();
 			}
 
@@ -335,7 +336,7 @@ public class RecordWriterTest {
 			queues[i] = new ArrayDeque<>();
 		}
 
-		BufferProvider bufferProvider = createBufferProvider(bufferSize);
+		TestPooledBufferProvider bufferProvider = new TestPooledBufferProvider(Integer.MAX_VALUE, bufferSize);
 
 		ResultPartitionWriter partitionWriter = createCollectingPartitionWriter(queues, bufferProvider);
 		RecordWriter<ByteArrayIO> writer = new RecordWriter<>(partitionWriter, new RoundRobin<ByteArrayIO>());
@@ -344,7 +345,7 @@ public class RecordWriterTest {
 		// No records emitted yet, broadcast should not request a buffer
 		writer.broadcastEvent(barrier);
 
-		verify(bufferProvider, times(0)).requestBufferBlocking();
+		assertEquals(0, bufferProvider.getNumberOfCreatedBuffers());
 
 		for (Queue<BufferOrEvent> queue : queues) {
 			assertEquals(1, queue.size());
@@ -580,12 +581,6 @@ public class RecordWriterTest {
 
 		public synchronized List<MemorySegment> getRecycledMemorySegments() {
 			return recycledMemorySegments;
-		}
-	}
-
-	private class ExpectedException extends RuntimeException {
-		public ExpectedException(String message) {
-			super(message);
 		}
 	}
 }
