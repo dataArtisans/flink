@@ -37,8 +37,6 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 
 public class TestPooledBufferProvider implements BufferProvider {
 
-	private final Object bufferCreationLock = new Object();
-
 	private final BlockingQueue<Buffer> buffers = new LinkedBlockingDeque<>();
 
 	private final TestBufferFactory bufferFactory;
