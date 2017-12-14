@@ -42,8 +42,7 @@ public class RecordOrEventCollectingResultPartitionWriter<T> implements ResultPa
 	private final Collection<Object> output;
 	private final BufferProvider bufferProvider;
 	private final NonReusingDeserializationDelegate<T> delegate;
-
-	final RecordDeserializer<DeserializationDelegate<T>> deserializer = new AdaptiveSpanningRecordDeserializer<>();
+	private final RecordDeserializer<DeserializationDelegate<T>> deserializer = new AdaptiveSpanningRecordDeserializer<>();
 
 	public RecordOrEventCollectingResultPartitionWriter(
 			Collection<Object> output,
@@ -52,7 +51,7 @@ public class RecordOrEventCollectingResultPartitionWriter<T> implements ResultPa
 
 		this.output = checkNotNull(output);
 		this.bufferProvider = checkNotNull(bufferProvider);
-		this.delegate = new NonReusingDeserializationDelegate(checkNotNull(serializer));
+		this.delegate = new NonReusingDeserializationDelegate<>(checkNotNull(serializer));
 	}
 
 	@Override
