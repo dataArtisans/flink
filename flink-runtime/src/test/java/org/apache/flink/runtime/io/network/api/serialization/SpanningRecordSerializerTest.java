@@ -21,7 +21,6 @@ package org.apache.flink.runtime.io.network.api.serialization;
 import org.apache.flink.core.memory.DataInputView;
 import org.apache.flink.core.memory.DataOutputView;
 import org.apache.flink.core.memory.MemorySegment;
-import org.apache.flink.runtime.io.network.buffer.BufferBuilder;
 import org.apache.flink.testutils.serialization.types.SerializationTestType;
 import org.apache.flink.testutils.serialization.types.SerializationTestTypeFactory;
 import org.apache.flink.testutils.serialization.types.Util;
@@ -74,10 +73,11 @@ public class SpanningRecordSerializerTest {
 		final int SEGMENT_SIZE = 11;
 
 		final SpanningRecordSerializer<SerializationTestType> serializer = new SpanningRecordSerializer<SerializationTestType>();
-		final BufferBuilder buffer = createBufferBuilder(SEGMENT_SIZE);
 
 		try {
-			Assert.assertEquals(RecordSerializer.SerializationResult.FULL_RECORD, serializer.setNextBufferBuilder(buffer));
+			Assert.assertEquals(
+				RecordSerializer.SerializationResult.FULL_RECORD,
+				serializer.setNextBufferBuilder(createBufferBuilder(SEGMENT_SIZE)));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
