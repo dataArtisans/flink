@@ -18,19 +18,15 @@
 
 package org.apache.flink.runtime.io.network.buffer;
 
-import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentFactory;
 
+/**
+ * Utility class for create not-pooled {@link BufferBuilder}.
+ */
 public class BufferBuilderTestUtils {
 	public static BufferBuilder createBufferBuilder(int size) {
 		return new BufferBuilder(
 			MemorySegmentFactory.allocateUnpooledSegment(size),
-			new NoOpRecycler());
-	}
-
-	private static class NoOpRecycler implements BufferRecycler {
-		@Override
-		public void recycle(MemorySegment memorySegment) {
-		}
+			FreeingBufferRecycler.INSTANCE);
 	}
 }

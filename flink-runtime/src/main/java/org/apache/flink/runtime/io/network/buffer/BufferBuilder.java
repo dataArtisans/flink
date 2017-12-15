@@ -46,7 +46,10 @@ public class BufferBuilder {
 		this.recycler = checkNotNull(recycler);
 	}
 
-	public void append(ByteBuffer source) {
+	/**
+	 * @return number of copied bytes
+	 */
+	public int append(ByteBuffer source) {
 		checkState(!built);
 
 		int needed = source.remaining();
@@ -55,6 +58,7 @@ public class BufferBuilder {
 
 		memorySegment.put(position, source, toCopy);
 		position += toCopy;
+		return toCopy;
 	}
 
 	public boolean isFull() {
@@ -65,9 +69,7 @@ public class BufferBuilder {
 	public Buffer build() {
 		checkState(!built);
 		built = true;
-
-		Buffer result = new Buffer(memorySegment, recycler, true, position);
-		return result;
+		return new Buffer(memorySegment, recycler, true, position);
 	}
 
 	public boolean isEmpty() {

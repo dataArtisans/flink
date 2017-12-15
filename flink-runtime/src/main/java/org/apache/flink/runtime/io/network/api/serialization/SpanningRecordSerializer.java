@@ -25,6 +25,8 @@ import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferBuilder;
 import org.apache.flink.runtime.metrics.groups.TaskIOMetricGroup;
 
+import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -51,6 +53,7 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 	private final ByteBuffer lengthBuffer;
 
 	/** Current target {@link Buffer} of the serializer */
+	@Nullable
 	private BufferBuilder targetBuffer;
 
 	public SpanningRecordSerializer() {
@@ -173,7 +176,7 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 	@Override
 	public boolean hasData() {
 		// either data in current target buffer or intermediate buffers
-		return (targetBuffer != null && !targetBuffer.isEmpty()) || (lengthBuffer.hasRemaining() || dataBuffer.hasRemaining());
+		return (targetBuffer != null && !targetBuffer.isEmpty()) || lengthBuffer.hasRemaining() || dataBuffer.hasRemaining();
 	}
 
 	@Override

@@ -130,7 +130,8 @@ public class RecordWriter<T extends IOReadableWritable> {
 						break;
 					}
 				} else {
-					BufferBuilder bufferBuilder = targetPartition.getBufferProvider().requestBufferBuilderBlocking();
+					BufferBuilder bufferBuilder =
+						targetPartition.getBufferProvider().requestBufferBuilderBlocking();
 					result = serializer.setNextBufferBuilder(bufferBuilder);
 				}
 			}
