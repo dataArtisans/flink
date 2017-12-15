@@ -57,7 +57,6 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 public class MockEnvironment implements Environment {
 	
@@ -91,8 +90,7 @@ public class MockEnvironment implements Environment {
 
 	private final ClassLoader userCodeClassLoader;
 
-	private TaskEventDispatcher taskEventDispatcher = mock
-		(TaskEventDispatcher.class);
+	private final TaskEventDispatcher taskEventDispatcher = new TaskEventDispatcher();
 
 	public MockEnvironment(String taskName, long memorySize, MockInputSplitProvider inputSplitProvider, int bufferSize) {
 		this(taskName, memorySize, inputSplitProvider, bufferSize, new Configuration(), new ExecutionConfig());
