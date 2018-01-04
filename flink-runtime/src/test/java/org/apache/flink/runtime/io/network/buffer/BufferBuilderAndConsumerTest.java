@@ -23,7 +23,12 @@ import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
+import java.util.ArrayList;
 
+import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.buildSingleBuffer;
+import static org.apache.flink.runtime.io.network.buffer.BufferConsumer.consumerFor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -31,12 +36,14 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests for {@link BufferBuilder}.
  */
-public class BufferBuilderTest {
+public class BufferBuilderAndConsumerTest {
 	private static final int BUFFER_SIZE = 10 * Integer.BYTES;
 
 	@Test
 	public void append() {
 		BufferBuilder bufferBuilder = createBufferBuilder();
+		BufferConsumer bufferConsumer = consumerFor(bufferBuilder);
+
 		int[] intsToWrite = new int[] {0, 1, 2, 3, 42};
 		ByteBuffer bytesToWrite = toByteBuffer(intsToWrite);
 
@@ -44,58 +51,70 @@ public class BufferBuilderTest {
 
 		assertEquals(bytesToWrite.limit(), bytesToWrite.position());
 		assertFalse(bufferBuilder.isFull());
-		Buffer buffer = bufferBuilder.build();
-		assertBufferContent(buffer, intsToWrite);
-		assertEquals(5 * Integer.BYTES, buffer.getSize());
-		assertEquals(FreeingBufferRecycler.INSTANCE, buffer.getRecycler());
+		assertContent(bufferConsumer, intsToWrite);
 	}
 
 	@Test
 	public void multipleAppends() {
 		BufferBuilder bufferBuilder = createBufferBuilder();
+		BufferConsumer bufferConsumer = consumerFor(bufferBuilder);
 
 		bufferBuilder.append(toByteBuffer(0, 1));
 		bufferBuilder.append(toByteBuffer(2));
 		bufferBuilder.append(toByteBuffer(3, 42));
 
-		Buffer buffer = bufferBuilder.build();
-		assertBufferContent(buffer, 0, 1, 2, 3, 42);
-		assertEquals(5 * Integer.BYTES, buffer.getSize());
+		assertContent(bufferConsumer, 0, 1, 2, 3, 42);
 	}
 
 	@Test
 	public void appendOverSize() {
 		BufferBuilder bufferBuilder = createBufferBuilder();
+		BufferConsumer bufferConsumer = consumerFor(bufferBuilder);
 		ByteBuffer bytesToWrite = toByteBuffer(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 42);
 
 		assertEquals(BUFFER_SIZE, bufferBuilder.append(bytesToWrite));
 
 		assertTrue(bufferBuilder.isFull());
-		Buffer buffer = bufferBuilder.build();
-		assertBufferContent(buffer, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-		assertEquals(BUFFER_SIZE, buffer.getSize());
+		assertContent(bufferConsumer, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 
 		bufferBuilder = createBufferBuilder();
+		bufferConsumer = consumerFor(bufferBuilder);
 		assertEquals(Integer.BYTES, bufferBuilder.append(bytesToWrite));
 
 		assertFalse(bufferBuilder.isFull());
-		buffer = bufferBuilder.build();
-		assertBufferContent(buffer, 42);
-		assertEquals(Integer.BYTES, buffer.getSize());
+		assertContent(bufferConsumer, 42);
 	}
 
 	@Test
 	public void buildEmptyBuffer() {
-		Buffer buffer = createBufferBuilder().build();
+		Buffer buffer = buildSingleBuffer(createBufferBuilder());
 		assertEquals(0, buffer.getSize());
-		assertBufferContent(buffer);
+		assertContent(buffer);
 	}
 
-	@Test(expected = IllegalStateException.class)
-	public void buildingBufferTwice() {
+	@Test
+	public void buildingBufferMultipleTimes() {
 		BufferBuilder bufferBuilder = createBufferBuilder();
-		bufferBuilder.build();
-		bufferBuilder.build();
+		try (BufferConsumer bufferConsumer = consumerFor(bufferBuilder)) {
+			bufferBuilder.append(toByteBuffer(0, 1));
+			bufferBuilder.append(toByteBuffer(2));
+
+			assertContent(bufferConsumer, 0, 1, 2);
+
+			bufferBuilder.append(toByteBuffer(3, 42));
+			bufferBuilder.append(toByteBuffer(44));
+
+			assertContent(bufferConsumer, 3, 42, 44);
+
+			ArrayList<Integer> originalValues = new ArrayList<>();
+			while (!bufferBuilder.isFull()) {
+				bufferBuilder.append(toByteBuffer(1337));
+				originalValues.add(1337);
+			}
+
+			assertContent(bufferConsumer, originalValues.stream().mapToInt(i->i).toArray());
+			assertTrue(bufferConsumer.isFinished());
+		}
 	}
 
 	private static ByteBuffer toByteBuffer(int... data) {
@@ -104,8 +123,24 @@ public class BufferBuilderTest {
 		return byteBuffer;
 	}
 
-	private static void assertBufferContent(Buffer actualBuffer, int... expected) {
-		assertEquals(toByteBuffer(expected), actualBuffer.getNioBufferReadable());
+	private static void assertContent(BufferConsumer actualConsumer, int... expected) {
+		assertFalse(actualConsumer.isFinished());
+		Buffer buffer = actualConsumer.build();
+		assertFalse(buffer.isRecycled());
+		assertContent(buffer, expected);
+		assertEquals(expected.length * Integer.BYTES, buffer.getSize());
+		buffer.recycleBuffer();
+	}
+
+	private static void assertContent(Buffer actualBuffer, int... expected) {
+		IntBuffer actualIntBuffer = actualBuffer.getNioBufferReadable().order(ByteOrder.BIG_ENDIAN).asIntBuffer();
+		int[] actual = new int[expected.length];
+		actualIntBuffer.get(actual);
+		for (int i = 0; i < expected.length; i++) {
+			assertEquals(expected[i], actual[i]);
+		}
+
+		assertEquals(FreeingBufferRecycler.INSTANCE, actualBuffer.getRecycler());
 	}
 
 	private static BufferBuilder createBufferBuilder() {

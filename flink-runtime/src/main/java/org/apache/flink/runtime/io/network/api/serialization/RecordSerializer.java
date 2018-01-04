@@ -20,7 +20,6 @@
 package org.apache.flink.runtime.io.network.api.serialization;
 
 import org.apache.flink.core.io.IOReadableWritable;
-import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferBuilder;
 
 import java.io.IOException;
@@ -85,17 +84,6 @@ public interface RecordSerializer<T extends IOReadableWritable> {
 	 * @throws IOException
 	 */
 	SerializationResult setNextBufferBuilder(BufferBuilder bufferBuilder) throws IOException;
-
-	/**
-	 * Retrieves the current target buffer and sets its size to the actual
-	 * number of written bytes.
-	 *
-	 * After calling this method, a new target buffer is required to continue
-	 * writing (see {@link #setNextBufferBuilder(BufferBuilder)}).
-	 *
-	 * @return the target buffer that was used
-	 */
-	Buffer getCurrentBuffer();
 
 	/**
 	 * Resets the target buffer to <tt>null</tt>.

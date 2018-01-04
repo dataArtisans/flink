@@ -21,6 +21,7 @@ package org.apache.flink.runtime.io.network.buffer;
 import org.apache.flink.core.memory.MemorySegment;
 
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import java.nio.ByteBuffer;
 
@@ -28,7 +29,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * Not thread safe class for filling in the initial content of the {@link Buffer}. Once writing to the builder
+ * Not thread safe class for filling in the content of the {@link MemorySegment}. Once writing to the builder
  * is complete, {@link Buffer} instance can be built and shared across multiple threads.
  */
 @NotThreadSafe
@@ -37,7 +38,9 @@ public class BufferBuilder {
 
 	private final BufferRecycler recycler;
 
-	private int position = 0;
+	private final SettablePositionMarker positionMarker = new SettablePositionMarker();
+
+	private int position = 0; // cache for positionMarker value, it allows us to avoid reading from positionMarker
 
 	private boolean built = false;
 
@@ -58,6 +61,7 @@ public class BufferBuilder {
 
 		memorySegment.put(position, source, toCopy);
 		position += toCopy;
+		positionMarker.set(position);
 		return toCopy;
 	}
 
@@ -66,17 +70,45 @@ public class BufferBuilder {
 		return position == limit();
 	}
 
-	public Buffer build() {
-		checkState(!built);
-		built = true;
-		return new NetworkBuffer(memorySegment, recycler, true, position);
-	}
-
 	public boolean isEmpty() {
 		return position == 0;
 	}
 
+	public int getPosition() {
+		return position;
+	}
+
+	MemorySegment getMemorySegment() {
+		return memorySegment;
+	}
+
+	BufferRecycler getRecycler() {
+		return recycler;
+	}
+
+	PositionMarker getPositionMarker() {
+		return positionMarker;
+	}
+
 	private int limit() {
 		return memorySegment.size();
+	}
+
+	@ThreadSafe
+	interface PositionMarker {
+		int get();
+	}
+
+	private static class SettablePositionMarker implements PositionMarker {
+		private volatile int position = 0;
+
+		@Override
+		public int get() {
+			return position;
+		}
+
+		public void set(int newPosition) {
+			position = newPosition;
+		}
 	}
 }

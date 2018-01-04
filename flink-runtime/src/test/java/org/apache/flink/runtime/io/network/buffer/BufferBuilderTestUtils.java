@@ -20,6 +20,8 @@ package org.apache.flink.runtime.io.network.buffer;
 
 import org.apache.flink.core.memory.MemorySegmentFactory;
 
+import static org.apache.flink.runtime.io.network.buffer.BufferConsumer.consumerFor;
+
 /**
  * Utility class for create not-pooled {@link BufferBuilder}.
  */
@@ -28,5 +30,11 @@ public class BufferBuilderTestUtils {
 		return new BufferBuilder(
 			MemorySegmentFactory.allocateUnpooledSegment(size),
 			FreeingBufferRecycler.INSTANCE);
+	}
+
+	public static Buffer buildSingleBuffer(BufferBuilder bufferBuilder) {
+		try (BufferConsumer bufferConsumer = consumerFor(bufferBuilder)) {
+			return bufferConsumer.build();
+		}
 	}
 }
