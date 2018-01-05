@@ -153,16 +153,19 @@ class SpillableSubpartition extends ResultSubpartition {
 				return;
 			}
 
+			// Release all available buffers
+			for (Buffer buffer : buffers) {
+				buffer.recycle();
+			}
+			buffers.clear();
+
+			// Get the view...
 			view = readView;
 
 			// No consumer yet, we are responsible to clean everything up. If
 			// one is available, the view is responsible is to clean up (see
 			// below).
 			if (view == null) {
-				for (Buffer buffer : buffers) {
-					buffer.recycle();
-				}
-				buffers.clear();
 
 				// TODO This can block until all buffers are written out to
 				// disk if a spill is in-progress before deleting the file.
@@ -176,6 +179,7 @@ class SpillableSubpartition extends ResultSubpartition {
 			isReleased = true;
 		}
 
+		// Release all resources of the view
 		if (view != null) {
 			view.releaseAllResources();
 		}
