@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -203,7 +204,7 @@ public class BufferFileWriterReaderTest {
 	}
 
 	static int fillBufferWithAscendingNumbers(Buffer buffer, int currentNumber, int size) {
-		assert size % 4 == 0;
+		checkArgument(size % 4 == 0);
 
 		MemorySegment segment = buffer.getMemorySegment();
 
