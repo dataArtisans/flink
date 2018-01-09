@@ -20,54 +20,95 @@ package org.apache.flink.runtime.io.network.buffer;
 
 import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentFactory;
+import org.apache.flink.runtime.io.network.netty.NettyBufferPool;
+
+import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class BufferTest {
+/**
+ * Tests for the {@link Buffer} class.
+ */
+public class BufferTest extends AbstractByteBufTest {
+
+	/**
+	 * Upper limit for the max size that is sufficient for all the tests.
+	 */
+	static final int MAX_CAPACITY_UPPER_BOUND = 64 * 1024 * 1024;
+
+	static final NettyBufferPool NETTY_BUFFER_POOL = new NettyBufferPool(1);
+
+	@Override
+	protected ByteBuf newBuffer(int length, int maxCapacity) {
+		final MemorySegment segment =
+			MemorySegmentFactory
+				.allocateUnpooledSegment(Math.min(maxCapacity, MAX_CAPACITY_UPPER_BOUND));
+
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
+		buffer.capacity(length);
+		buffer.setAllocator(NETTY_BUFFER_POOL);
+
+		assertSame(ByteOrder.BIG_ENDIAN, buffer.order());
+		assertEquals(0, buffer.readerIndex());
+		assertEquals(0, buffer.writerIndex());
+		return buffer;
+	}
 
 	@Test
 	public void testSetGetSize() {
 		final MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(1024);
 
-		Buffer buffer = new Buffer(segment, FreeingBufferRecycler.INSTANCE);
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
 		Assert.assertEquals(segment.size(), buffer.getSize());
+		Assert.assertEquals(segment.size(), buffer.maxCapacity());
+		// writer index should not reflect size
+		assertEquals(0, buffer.writerIndex());
+		assertEquals(0, buffer.readerIndex());
 
-		buffer.setSize(segment.size() / 2);
-		Assert.assertEquals(segment.size() / 2, buffer.getSize());
+		buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE, true, 10);
+		Assert.assertEquals(segment.size(), buffer.getSize());
+		Assert.assertEquals(segment.size(), buffer.maxCapacity());
+		// writer index should not reflect size
+		assertEquals(10, buffer.writerIndex());
+		assertEquals(0, buffer.readerIndex());
+	}
 
-		try {
-			buffer.setSize(-1);
-			Assert.fail("Didn't throw expected exception");
-		} catch (IllegalArgumentException e) {
-			// OK => expected exception
-		}
+	@Test
+	public void testgetNioBufferReadableThreadSafe() {
+		final MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(1024);
 
-		try {
-			buffer.setSize(segment.size() + 1);
-			Assert.fail("Didn't throw expected exception");
-		} catch (IllegalArgumentException e) {
-			// OK => expected exception
-		}
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
+
+		ByteBuffer buf1 = buffer.getNioBufferReadable();
+		ByteBuffer buf2 = buffer.getNioBufferReadable();
+
+		assertNotNull(buf1);
+		assertNotNull(buf2);
+
+		assertTrue("Repeated call to getNioBuffer() returns the same nio buffer", buf1 != buf2);
 	}
 
 	@Test
 	public void testgetNioBufferThreadSafe() {
 		final MemorySegment segment = MemorySegmentFactory.allocateUnpooledSegment(1024);
 
-		Buffer buffer = new Buffer(segment, FreeingBufferRecycler.INSTANCE);
+		NetworkBuffer buffer = new NetworkBuffer(segment, FreeingBufferRecycler.INSTANCE);
 
-		ByteBuffer buf1 = buffer.getNioBuffer();
-		ByteBuffer buf2 = buffer.getNioBuffer();
+		ByteBuffer buf1 = buffer.getNioBuffer(0, 10);
+		ByteBuffer buf2 = buffer.getNioBuffer(0, 10);
 
 		assertNotNull(buf1);
 		assertNotNull(buf2);
 
-		assertTrue("Repeated call to getNioBuffer() returns the same nio buffer", buf1 != buf2);
+		assertTrue("Repeated call to getNioBuffer(int, int) returns the same nio buffer", buf1 != buf2);
 	}
 }

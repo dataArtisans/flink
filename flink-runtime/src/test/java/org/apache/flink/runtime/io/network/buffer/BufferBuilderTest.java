@@ -46,7 +46,7 @@ public class BufferBuilderTest {
 		assertFalse(bufferBuilder.isFull());
 		Buffer buffer = bufferBuilder.build();
 		assertBufferContent(buffer, intsToWrite);
-		assertEquals(5 * Integer.BYTES, buffer.getSize());
+		assertEquals(5 * Integer.BYTES, buffer.getWriterIndex());
 		assertEquals(FreeingBufferRecycler.INSTANCE, buffer.getRecycler());
 	}
 
@@ -60,7 +60,7 @@ public class BufferBuilderTest {
 
 		Buffer buffer = bufferBuilder.build();
 		assertBufferContent(buffer, 0, 1, 2, 3, 42);
-		assertEquals(5 * Integer.BYTES, buffer.getSize());
+		assertEquals(5 * Integer.BYTES, buffer.getWriterIndex());
 	}
 
 	@Test
@@ -73,7 +73,7 @@ public class BufferBuilderTest {
 		assertTrue(bufferBuilder.isFull());
 		Buffer buffer = bufferBuilder.build();
 		assertBufferContent(buffer, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-		assertEquals(BUFFER_SIZE, buffer.getSize());
+		assertEquals(BUFFER_SIZE, buffer.getWriterIndex());
 
 		bufferBuilder = createBufferBuilder();
 		assertEquals(Integer.BYTES, bufferBuilder.append(bytesToWrite));
@@ -81,13 +81,13 @@ public class BufferBuilderTest {
 		assertFalse(bufferBuilder.isFull());
 		buffer = bufferBuilder.build();
 		assertBufferContent(buffer, 42);
-		assertEquals(Integer.BYTES, buffer.getSize());
+		assertEquals(Integer.BYTES, buffer.getWriterIndex());
 	}
 
 	@Test
 	public void buildEmptyBuffer() {
 		Buffer buffer = createBufferBuilder().build();
-		assertEquals(0, buffer.getSize());
+		assertEquals(0, buffer.getWriterIndex());
 		assertBufferContent(buffer);
 	}
 
@@ -105,7 +105,7 @@ public class BufferBuilderTest {
 	}
 
 	private static void assertBufferContent(Buffer actualBuffer, int... expected) {
-		assertEquals(toByteBuffer(expected), actualBuffer.getNioBuffer());
+		assertEquals(toByteBuffer(expected), actualBuffer.getNioBufferReadable());
 	}
 
 	private static BufferBuilder createBufferBuilder() {

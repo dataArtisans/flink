@@ -55,7 +55,7 @@ public class AdaptiveSpanningRecordDeserializer<T extends IOReadableWritable> im
 		currentBuffer = buffer;
 
 		MemorySegment segment = buffer.getMemorySegment();
-		int numBytes = buffer.getSize();
+		int numBytes = buffer.getWriterIndex();
 
 		setNextMemorySegment(segment, numBytes);
 	}
