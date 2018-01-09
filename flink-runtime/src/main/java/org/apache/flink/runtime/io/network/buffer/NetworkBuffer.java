@@ -151,6 +151,34 @@ public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Bu
 		return (NetworkBuffer) super.retain();
 	}
 
+	/**
+	 * Returns a read-only slice of this buffer's readable bytes, i.e. between
+	 * {@link #readerIndex()} and {@link #writerIndex()}.
+	 *
+	 * <p>Reader and writer indices as well as markers are not shared. Reference counters are
+	 * shared but the slice is not {@link #retainBuffer() retained} automatically.
+	 *
+	 * @return a read-only sliced buffer
+	 */
+	public ReadOnlySlicedNetworkBuffer readOnlySlice() {
+		return readOnlySlice(readerIndex(), readableBytes());
+	}
+
+	/**
+	 * Returns a read-only slice of this buffer.
+	 *
+	 * <p>Reader and writer indices as well as markers are not shared. Reference counters are
+	 * shared but the slice is not {@link #retainBuffer() retained} automatically.
+	 *
+	 * @param index the index to start from
+	 * @param length the length of the slice
+	 *
+	 * @return a read-only sliced buffer
+	 */
+	public ReadOnlySlicedNetworkBuffer readOnlySlice(int index, int length) {
+		return new ReadOnlySlicedNetworkBuffer(this, index, length);
+	}
+
 	@Override
 	protected void deallocate() {
 		recycler.recycle(memorySegment);
