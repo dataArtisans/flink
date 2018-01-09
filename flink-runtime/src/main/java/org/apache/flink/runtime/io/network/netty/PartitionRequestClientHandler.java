@@ -428,7 +428,7 @@ class PartitionRequestClientHandler extends ChannelInboundHandlerAdapter {
 			finally {
 				if (!success) {
 					if (buffer != null) {
-						buffer.recycle();
+						buffer.recycleBuffer();
 					}
 				}
 			}
@@ -482,7 +482,7 @@ class PartitionRequestClientHandler extends ChannelInboundHandlerAdapter {
 			finally {
 				if (!success) {
 					if (buffer != null) {
-						buffer.recycle();
+						buffer.recycleBuffer();
 					}
 				}
 			}
