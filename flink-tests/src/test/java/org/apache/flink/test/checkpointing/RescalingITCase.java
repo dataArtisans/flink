@@ -51,12 +51,14 @@ import org.apache.flink.streaming.api.functions.sink.DiscardingSink;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.testutils.LogTestName;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.TestLogger;
 
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -97,6 +99,9 @@ public class RescalingITCase extends TestLogger {
 	public static Object[] data() {
 		return new Object[]{"filesystem", "rocksdb"};
 	}
+
+	@Rule
+	public LogTestName logTestName = new LogTestName();
 
 	@Parameterized.Parameter
 	public String backend;
