@@ -113,6 +113,7 @@ public class SpanningRecordSerializerTest {
 		result = serializer.addRecord(emptyRecord);
 		Assert.assertEquals(RecordSerializer.SerializationResult.PARTIAL_RECORD_MEMORY_SEGMENT_FULL, result);
 
+		serializer.clear();
 		result = serializer.setNextBufferBuilder(createBufferBuilder(SEGMENT_SIZE));
 		Assert.assertEquals(RecordSerializer.SerializationResult.FULL_RECORD, result);
 	}
@@ -178,6 +179,7 @@ public class SpanningRecordSerializerTest {
 				Assert.assertEquals(RecordSerializer.SerializationResult.FULL_RECORD, result);
 			} else if (numBytes == segmentSize) {
 				Assert.assertEquals(RecordSerializer.SerializationResult.FULL_RECORD_MEMORY_SEGMENT_FULL, result);
+				serializer.clear();
 				serializer.setNextBufferBuilder(createBufferBuilder(segmentSize));
 				numBytes = 0;
 			} else {
@@ -186,6 +188,7 @@ public class SpanningRecordSerializerTest {
 				while (result.isFullBuffer()) {
 					numBytes -= segmentSize;
 
+					serializer.clear();
 					result = serializer.setNextBufferBuilder(createBufferBuilder(segmentSize));
 				}
 			}

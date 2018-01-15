@@ -104,17 +104,6 @@ public interface RecordSerializer<T extends IOReadableWritable> {
 	 * buffer is required to continue writing</strong> (see
 	 * {@link #setNextBufferBuilder(BufferBuilder)}).</p>
 	 */
-	void clearCurrentBuffer();
-
-	/**
-	 * Resets the target buffer to <tt>null</tt> and resets internal state set
-	 * up for the record to serialize.
-	 *
-	 * <p><strong>NOTE:</strong> After calling this method, a <strong>new record
-	 * and a new target buffer is required to start writing again</strong>
-	 * (see {@link #setNextBufferBuilder(BufferBuilder)}). If you want to continue
-	 * with the current record, use {@link #clearCurrentBuffer()} instead.</p>
-	 */
 	void clear();
 
 	/**
@@ -124,4 +113,9 @@ public interface RecordSerializer<T extends IOReadableWritable> {
 	 * @return <tt>true</tt> if some data is present
 	 */
 	boolean hasData();
+
+	/**
+	 * @return <tt>true</tt> if has some serialized data pending copying to the result {@link BufferBuilder}.
+	 */
+	boolean hasSerializedData();
 }
