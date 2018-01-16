@@ -40,6 +40,21 @@ public class BufferBuilderAndConsumerTest {
 	private static final int BUFFER_SIZE = 10 * Integer.BYTES;
 
 	@Test
+	public void referenceCounting() {
+		BufferBuilder bufferBuilder = createBufferBuilder();
+		BufferConsumer bufferConsumer = consumerFor(bufferBuilder);
+
+		assertEquals(3 * Integer.BYTES, bufferBuilder.append(toByteBuffer(1, 2, 3)));
+
+		Buffer buffer = bufferConsumer.build();
+		assertFalse(buffer.isRecycled());
+		buffer.recycleBuffer();
+		assertFalse(buffer.isRecycled());
+		bufferConsumer.close();
+		assertTrue(buffer.isRecycled());
+	}
+
+	@Test
 	public void append() {
 		BufferBuilder bufferBuilder = createBufferBuilder();
 		BufferConsumer bufferConsumer = consumerFor(bufferBuilder);

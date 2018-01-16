@@ -216,13 +216,14 @@ public class RecordWriter<T extends IOReadableWritable> {
 			return true;
 		} finally {
 			serializer.clear();
+			closeBufferConsumer(targetChannel);
 		}
 	}
 
 	private void closeBufferConsumer(int targetChannel) {
-		if (bufferConsumers[targetChannel] != null) {
+		if (bufferConsumers[targetChannel].isPresent()) {
 			bufferConsumers[targetChannel].get().close();
-			bufferConsumers[targetChannel] = null;
+			bufferConsumers[targetChannel] = Optional.empty();
 		}
 	}
 }
