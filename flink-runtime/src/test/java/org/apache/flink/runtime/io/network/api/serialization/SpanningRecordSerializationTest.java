@@ -95,14 +95,16 @@ public class SpanningRecordSerializationTest {
 	 * @param records records to test
 	 * @param segmentSize size for the {@link MemorySegment}
 	 */
-	private void test(Util.MockRecords records, int segmentSize, 
+	public static void test(
+			Iterable<SerializationTestType> records,
+			int segmentSize,
 			RecordSerializer<SerializationTestType> serializer,
 			RecordDeserializer<SerializationTestType> deserializer)
 		throws Exception
 	{
 		final int SERIALIZATION_OVERHEAD = 4; // length encoding
 
-		final ArrayDeque<SerializationTestType> serializedRecords = new ArrayDeque<SerializationTestType>();
+		final ArrayDeque<SerializationTestType> serializedRecords = new ArrayDeque<>();
 
 		// -------------------------------------------------------------------------------------------------------------
 
@@ -138,9 +140,6 @@ public class SpanningRecordSerializationTest {
 				while (serializer.setNextBufferBuilder(createBufferBuilder(segmentSize)).isFullBuffer()) {
 					deserializer.setNextMemorySegment(serializer.getCurrentBuffer().getMemorySegment(), segmentSize);
 				}
-
-
-
 			}
 		}
 
