@@ -33,63 +33,39 @@ import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.
 public class SpanningRecordSerializationTest {
 
 	@Test
-	public void testIntRecordsSpanningMultipleSegments() {
+	public void testIntRecordsSpanningMultipleSegments() throws Exception {
 		final int SEGMENT_SIZE = 1;
 		final int NUM_VALUES = 10;
 
-		try {
-			testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
-			testSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			Assert.fail("Test encountered an unexpected exception.");
-		}
+		testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
+		testSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
 	}
 
 	@Test
-	public void testIntRecordsWithAlignedBuffers () {
+	public void testIntRecordsWithAlignedBuffers () throws Exception {
 		final int SEGMENT_SIZE = 64;
 		final int NUM_VALUES = 64;
 
-		try {
-			testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
-			testSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			Assert.fail("Test encountered an unexpected exception.");
-		}
+		testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
+		testSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
 	}
 
 	@Test
-	public void testIntRecordsWithUnalignedBuffers () {
+	public void testIntRecordsWithUnalignedBuffers () throws Exception {
 		final int SEGMENT_SIZE = 31;
 		final int NUM_VALUES = 248;
 
-		try {
-			testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
-			testSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			Assert.fail("Test encountered an unexpected exception.");
-		}
+		testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
+		testSpillingDeserializer(Util.randomRecords(NUM_VALUES, SerializationTestTypeFactory.INT), SEGMENT_SIZE);
 	}
 
 	@Test
-	 public void testRandomRecords () {
+	 public void testRandomRecords () throws Exception {
 		final int SEGMENT_SIZE = 127;
 		final int NUM_VALUES = 10000;
 
-		try {
-			testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES), SEGMENT_SIZE);
-			testSpillingDeserializer(Util.randomRecords(NUM_VALUES), SEGMENT_SIZE);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			Assert.fail("Test encountered an unexpected exception.");
-		}
+		testNonSpillingDeserializer(Util.randomRecords(NUM_VALUES), SEGMENT_SIZE);
+		testSpillingDeserializer(Util.randomRecords(NUM_VALUES), SEGMENT_SIZE);
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------
