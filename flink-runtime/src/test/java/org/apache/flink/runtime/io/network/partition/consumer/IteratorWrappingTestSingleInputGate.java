@@ -69,6 +69,7 @@ public class IteratorWrappingTestSingleInputGate<T extends IOReadableWritable> e
 			@Override
 			public InputChannel.BufferAndAvailability answer(InvocationOnMock invocationOnMock) throws Throwable {
 				if (hasData) {
+					serializer.clear();
 					serializer.setNextBufferBuilder(createBufferBuilder(bufferSize));
 					serializer.addRecord(reuse);
 
