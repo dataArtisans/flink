@@ -66,7 +66,6 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 		// ensure initial state with hasRemaining false (for correct setNextBufferBuilder logic)
 		dataBuffer = serializationBuffer.wrapAsByteBuffer();
 		lengthBuffer.position(4);
-		checkState(!hasData());
 	}
 
 	/**
@@ -167,7 +166,7 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 		return lengthBuffer.hasRemaining() || dataBuffer.hasRemaining();
 	}
 
-	public boolean hasDataInBuffer() {
+	private boolean hasDataInBuffer() {
 		return targetBuffer != null && !targetBuffer.isEmpty();
 	}
 }
