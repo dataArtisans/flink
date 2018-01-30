@@ -369,7 +369,7 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 
 				// Important: double check the isReleased state inside synchronized block, so there is no
 				// race condition when notifyBufferAvailable and releaseAllResources running in parallel.
-				if (isReleased.get() || bufferQueue.getAvailableBufferSize() >= numRequiredBuffers) {
+				if (isReleased.get() || isBlocked() || bufferQueue.getAvailableBufferSize() >= numRequiredBuffers) {
 					isWaitingForFloatingBuffers = false;
 					recycleBuffer = false; // just in case
 					buffer.recycleBuffer();
@@ -485,7 +485,7 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 		synchronized (bufferQueue) {
 			// Important: check the isReleased state inside synchronized block, so there is no
 			// race condition when onSenderBacklog and releaseAllResources running in parallel.
-			if (isReleased.get()) {
+			if (isReleased.get() || isBlocked()) {
 				return;
 			}
 

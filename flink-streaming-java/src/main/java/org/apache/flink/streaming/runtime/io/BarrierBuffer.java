@@ -466,6 +466,7 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 	private void onBarrier(int channelIndex) throws IOException {
 		if (!blockedChannels[channelIndex]) {
 			blockedChannels[channelIndex] = true;
+			inputGate.blockInputChannel(channelIndex);
 
 			numBarriersReceived++;
 
@@ -488,6 +489,8 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 		for (int i = 0; i < blockedChannels.length; i++) {
 			blockedChannels[i] = false;
 		}
+
+		inputGate.releaseBlockedInputChannels();
 
 		if (currentBuffered == null) {
 			// common case: no more buffered data

@@ -45,6 +45,7 @@ import org.apache.flink.runtime.taskmanager.TaskActions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.concurrent.GuardedBy;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -135,7 +136,12 @@ public class SingleInputGate implements InputGate {
 	 * Input channels. There is a one input channel for each consumed intermediate result partition.
 	 * We store this in a map for runtime updates of single channels.
 	 */
+	@GuardedBy("requestLock")
 	private final Map<IntermediateResultPartitionID, InputChannel> inputChannels;
+
+	/** A mapping from internal channel index in this gate to input channel. */
+	@GuardedBy("requestLock")
+	private final Map<Integer, InputChannel> indexToInputChannelMap;
 
 	/** Channels, which notified this input gate about available data. */
 	private final ArrayDeque<InputChannel> inputChannelsWithData = new ArrayDeque<>();
@@ -207,6 +213,7 @@ public class SingleInputGate implements InputGate {
 		this.numberOfInputChannels = numberOfInputChannels;
 
 		this.inputChannels = new HashMap<>(numberOfInputChannels);
+		this.indexToInputChannelMap = new HashMap<>(numberOfInputChannels);
 		this.channelsWithEndOfPartitionEvents = new BitSet(numberOfInputChannels);
 		this.enqueuedInputChannelsWithData = new BitSet(numberOfInputChannels);
 
@@ -321,6 +328,7 @@ public class SingleInputGate implements InputGate {
 	public void setInputChannel(IntermediateResultPartitionID partitionId, InputChannel inputChannel) {
 		synchronized (requestLock) {
 			if (inputChannels.put(checkNotNull(partitionId), checkNotNull(inputChannel)) == null
+					&& indexToInputChannelMap.put(inputChannel.getChannelIndex(), inputChannel) == null
 					&& inputChannel instanceof UnknownInputChannel) {
 
 				numberOfUninitializedChannels++;
@@ -367,6 +375,7 @@ public class SingleInputGate implements InputGate {
 				LOG.debug("Updated unknown input channel to {}.", newChannel);
 
 				inputChannels.put(partitionId, newChannel);
+				indexToInputChannelMap.put(newChannel.getChannelIndex(), newChannel);
 
 				if (requestedPartitionsFlag) {
 					newChannel.requestSubpartition(consumedSubpartitionIndex);
@@ -490,6 +499,23 @@ public class SingleInputGate implements InputGate {
 			}
 
 			requestedPartitionsFlag = true;
+		}
+	}
+
+	@Override
+	public void blockInputChannel(int channelIndex) {
+		InputChannel inputChannel = indexToInputChannelMap.get(channelIndex);
+		if (inputChannel == null) {
+			throw new IllegalStateException("Could not find input channel from the channel index " + channelIndex);
+		}
+
+		inputChannel.setBlocked(true);
+	}
+
+	@Override
+	public void releaseBlockedInputChannels() {
+		for (InputChannel inputChannel : inputChannels.values()) {
+			inputChannel.setBlocked(false);
 		}
 	}
 

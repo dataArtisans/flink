@@ -67,6 +67,9 @@ public abstract class InputChannel {
 	/** The current backoff (in ms) */
 	private int currentBackoff;
 
+	/** Flag indicating whether this channel is currently blocked or not. */
+	private volatile boolean isBlocked = false;
+
 	protected InputChannel(
 			SingleInputGate inputGate,
 			int channelIndex,
@@ -165,6 +168,14 @@ public abstract class InputChannel {
 	 * Releases all resources of the channel.
 	 */
 	abstract void releaseAllResources() throws IOException;
+
+	protected boolean isBlocked() {
+		return isBlocked;
+	}
+
+	protected void setBlocked(boolean isBlocked) {
+		this.isBlocked = isBlocked;
+	}
 
 	// ------------------------------------------------------------------------
 	// Error notification
