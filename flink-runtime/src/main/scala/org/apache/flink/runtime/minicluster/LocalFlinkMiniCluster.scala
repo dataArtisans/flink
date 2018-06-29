@@ -49,6 +49,7 @@ import org.apache.flink.runtime.messages.JobManagerMessages.{RunningJobsStatus, 
 import org.apache.flink.runtime.metrics.groups.{JobManagerMetricGroup, TaskManagerMetricGroup}
 import org.apache.flink.runtime.metrics.util.MetricUtils
 import org.apache.flink.runtime.state.TaskExecutorLocalStateStoresManager
+import org.apache.flink.runtime.taskexecutor.utils.SystemResourcesMetricsInitializer
 import org.apache.flink.runtime.taskexecutor.{TaskExecutor, TaskManagerConfiguration, TaskManagerServices, TaskManagerServicesConfiguration}
 import org.apache.flink.runtime.taskmanager.{TaskManager, TaskManagerLocation}
 import org.apache.flink.runtime.util.EnvironmentInformation
@@ -247,6 +248,12 @@ class LocalFlinkMiniCluster(
       metricRegistryOpt.get,
       taskManagerServices.getTaskManagerLocation(),
       taskManagerServices.getNetworkEnvironment())
+
+    if (taskManagerServicesConfiguration.isSystemResourcesLoggingEnabled) {
+      SystemResourcesMetricsInitializer.instantiateSystemMetrics(
+        taskManagerMetricGroup,
+        taskManagerServicesConfiguration.getSystemResourcesLoggingInterval)
+    }
 
     val props = getTaskManagerProps(
       taskManagerClass,
