@@ -26,13 +26,16 @@ import org.apache.flink.shaded.netty4.io.netty.channel.Channel;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandler;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.string.StringDecoder;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.string.StringEncoder;
+import org.apache.flink.shaded.netty4.io.netty.handler.ssl.SslHandler;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.InetAddress;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class NettyClientServerSslTest {
@@ -64,6 +67,60 @@ public class NettyClientServerSslTest {
 		NettyTestUtil.NettyServerAndClient serverAndClient = NettyTestUtil.initServerAndClient(protocol, nettyConfig);
 
 		Channel ch = NettyTestUtil.connect(serverAndClient);
+
+		SslHandler sslHandler = (SslHandler) ch.pipeline().get("ssl");
+		assertTrue("default value should not be propagated", sslHandler.getHandshakeTimeoutMillis() >= 0);
+		assertTrue("default value should not be propagated", sslHandler.getCloseNotifyTimeoutMillis() >= 0);
+
+		// should be able to send text data
+		ch.pipeline().addLast(new StringDecoder()).addLast(new StringEncoder());
+		assertTrue(ch.writeAndFlush("test").await().isSuccess());
+
+		NettyTestUtil.shutdown(serverAndClient);
+	}
+
+	/**
+	 * Verify valid (advanced) ssl configuration and connection.
+	 */
+	@Test
+	public void testValidSslConnectionAdvanced() throws Exception {
+		NettyProtocol protocol = new NettyProtocol(null, null, true) {
+			@Override
+			public ChannelHandler[] getServerChannelHandlers() {
+				return new ChannelHandler[0];
+			}
+
+			@Override
+			public ChannelHandler[] getClientChannelHandlers() {
+				return new ChannelHandler[0];
+			}
+		};
+
+		final int SESSION_CACHE_SIZE = 1;
+		final int SESSION_TIMEOUT = 1_000;
+		final int HANDSHAKE_TIMEOUT = 1_000;
+		final int CLOSE_NOTIFY_FLUSH_TIMEOUT = 1_000;
+
+		Configuration sslConfig = createSslConfig();
+		sslConfig.setInteger("security.ssl.session-cache-size", SESSION_CACHE_SIZE);
+		sslConfig.setInteger("security.ssl.session-timeout", SESSION_TIMEOUT);
+		sslConfig.setInteger("security.ssl.handshake-timeout", HANDSHAKE_TIMEOUT);
+		sslConfig.setInteger("security.ssl.close-notify-flush-timeout", CLOSE_NOTIFY_FLUSH_TIMEOUT);
+
+		NettyConfig nettyConfig = new NettyConfig(
+			InetAddress.getLoopbackAddress(),
+			NetUtils.getAvailablePort(),
+			NettyTestUtil.DEFAULT_SEGMENT_SIZE,
+			1,
+			sslConfig);
+
+		NettyTestUtil.NettyServerAndClient serverAndClient = NettyTestUtil.initServerAndClient(protocol, nettyConfig);
+
+		Channel ch = NettyTestUtil.connect(serverAndClient);
+
+		SslHandler sslHandler = (SslHandler) ch.pipeline().get("ssl");
+		assertEquals(sslHandler.getHandshakeTimeoutMillis(), HANDSHAKE_TIMEOUT);
+		assertEquals(sslHandler.getCloseNotifyTimeoutMillis(), CLOSE_NOTIFY_FLUSH_TIMEOUT);
 
 		// should be able to send text data
 		ch.pipeline().addLast(new StringDecoder()).addLast(new StringEncoder());

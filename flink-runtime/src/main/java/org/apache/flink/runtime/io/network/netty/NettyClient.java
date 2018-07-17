@@ -18,6 +18,8 @@
 
 package org.apache.flink.runtime.io.network.netty;
 
+import org.apache.flink.runtime.net.SSLUtils;
+
 import org.apache.flink.shaded.netty4.io.netty.bootstrap.Bootstrap;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelException;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelFuture;
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
@@ -52,6 +55,7 @@ class NettyClient {
 
 	private Bootstrap bootstrap;
 
+	private SSLUtils.SSLClientConfiguration clientSSLConfig;
 	private SSLContext clientSSLContext = null;
 
 	NettyClient(NettyConfig config) {
@@ -112,7 +116,8 @@ class NettyClient {
 		}
 
 		try {
-			clientSSLContext = config.createClientSSLContext();
+			clientSSLConfig = config.getClientSSLConfiguration();
+			clientSSLContext = config.createClientSSLContext(clientSSLConfig);
 		} catch (Exception e) {
 			throw new IOException("Failed to initialize SSL Context for the Netty client", e);
 		}
@@ -175,7 +180,6 @@ class NettyClient {
 		bootstrap.handler(new ChannelInitializer<SocketChannel>() {
 			@Override
 			public void initChannel(SocketChannel channel) throws Exception {
-
 				// SSL handler should be added first in the pipeline
 				if (clientSSLContext != null) {
 					SSLEngine sslEngine = clientSSLContext.createSSLEngine(
@@ -190,7 +194,14 @@ class NettyClient {
 						sslEngine.setSSLParameters(newSSLParameters);
 					}
 
-					channel.pipeline().addLast("ssl", new SslHandler(sslEngine));
+					SslHandler sslHandler = new SslHandler(sslEngine);
+					if (clientSSLConfig.handshakeTimeoutMs >= 0) {
+						sslHandler.setHandshakeTimeoutMillis(clientSSLConfig.handshakeTimeoutMs);
+					}
+					if (clientSSLConfig.closeNotifyFlushTimeoutMs >= 0) {
+						sslHandler.setCloseNotifyTimeoutMillis(clientSSLConfig.closeNotifyFlushTimeoutMs);
+					}
+					channel.pipeline().addLast("ssl", sslHandler);
 				}
 				channel.pipeline().addLast(protocol.getClientChannelHandlers());
 			}

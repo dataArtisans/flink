@@ -23,12 +23,15 @@ import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.net.SSLUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+
 import java.net.InetAddress;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -189,23 +192,34 @@ public class NettyConfig {
 		}
 	}
 
-	public SSLContext createClientSSLContext() throws Exception {
+	@Nullable
+	public SSLUtils.SSLClientConfiguration getClientSSLConfiguration() throws Exception {
+		return SSLUtils.createSSLClientConfiguration(config);
+	}
 
+	@Nullable
+	public SSLContext createClientSSLContext(SSLUtils.SSLClientConfiguration clientTools) throws Exception {
 		// Create SSL Context from config
 		SSLContext clientSSLContext = null;
 		if (getSSLEnabled()) {
-			clientSSLContext = SSLUtils.createSSLClientContext(config);
+			clientSSLContext = SSLUtils.createSSLClientContext(clientTools);
 		}
 
 		return clientSSLContext;
 	}
 
-	public SSLContext createServerSSLContext() throws Exception {
+	@Nullable
+	public SSLUtils.SSLServerConfiguration getServerSSLConfiguration() throws Exception {
+		return SSLUtils.createSSLServerConfiguration(config);
+	}
+
+	@Nullable
+	public SSLContext createServerSSLContext(SSLUtils.SSLServerConfiguration serverTools) throws Exception {
 
 		// Create SSL Context from config
 		SSLContext serverSSLContext = null;
 		if (getSSLEnabled()) {
-			serverSSLContext = SSLUtils.createSSLServerContext(config);
+			serverSSLContext = SSLUtils.createSSLServerContext(serverTools);
 		}
 
 		return serverSSLContext;
