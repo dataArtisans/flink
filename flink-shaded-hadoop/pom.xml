@@ -121,6 +121,7 @@ under the License.
 									<include>com.google.code.findbugs:*</include>
 									<include>asm:asm</include>
 									<include>io.netty:netty:*</include>
+									<include>io.netty:netty-all:*</include>
 									<include>org.apache.curator:*</include>
 									<include>org.apache.hadoop:*</include>
 									<include>org.htrace:htrace-core</include>
