@@ -359,9 +359,14 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
 			//It is no need to notify credit for the released channel.
 			if (!inputChannel.isReleased()) {
+				int unannouncedCredit = inputChannel.getAndResetUnannouncedCredit();
+				if (unannouncedCredit == 0) {
+					continue;
+				}
+
 				AddCredit msg = new AddCredit(
 					inputChannel.getPartitionId(),
-					inputChannel.getAndResetUnannouncedCredit(),
+					unannouncedCredit,
 					inputChannel.getInputChannelId());
 
 				// Write and flush and wait until this is done before

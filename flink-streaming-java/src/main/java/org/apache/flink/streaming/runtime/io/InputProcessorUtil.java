@@ -51,7 +51,8 @@ public class InputProcessorUtil {
 					+ " must be positive or -1 (infinite)");
 			}
 
-			if (taskManagerConfig.getBoolean(TaskManagerOptions.NETWORK_CREDIT_MODEL)) {
+			if (taskManagerConfig.getBoolean(TaskManagerOptions.NETWORK_CREDIT_MODEL) &&
+				!taskManagerConfig.getBoolean(TaskManagerOptions.NETWORK_FORCE_SPILLING_BARRIER_ALIGNMENT)) {
 				barrierHandler = new BarrierBuffer(inputGate, new CachedBufferBlocker(inputGate.getPageSize()), maxAlign);
 			} else {
 				barrierHandler = new BarrierBuffer(inputGate, new BufferSpiller(ioManager, inputGate.getPageSize()), maxAlign);

@@ -108,6 +108,11 @@
             <td>Boolean flag to enable/disable more detailed metrics about inbound/outbound network queue lengths.</td>
         </tr>
         <tr>
+            <td><h5>taskmanager.network.force-spilling-barrier-alignment</h5></td>
+            <td style="word-wrap: break-word;">true</td>
+            <td>Boolean flag to enable/disable spilling barrier alignment. When using non spilling alignment (this option disabled), floating buffers in credit base flow control might not be efficiently used during barrier alignment. This can lead to reduced max network throughput especially in high latency networks. Enabling spilling solves this problem, but put more strain on IO system and increases latencies in a period just after barrier alignment.</td>
+        </tr>
+        <tr>
             <td><h5>taskmanager.network.memory.buffers-per-channel</h5></td>
             <td style="word-wrap: break-word;">2</td>
             <td>Maximum number of network buffers to use for each outgoing/incoming channel (subpartition/input channel).In credit-based flow control mode, this indicates how many credits are exclusive in each input channel. It should be configured at least 2 for good performance. 1 buffer is for receiving in-flight data in the subpartition and 1 buffer is for parallel serialization.</td>

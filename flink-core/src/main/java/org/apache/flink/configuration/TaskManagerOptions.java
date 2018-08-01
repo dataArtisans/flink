@@ -348,6 +348,16 @@ public class TaskManagerOptions {
 			.withDeprecatedKeys("taskmanager.network.credit-based-flow-control.enabled")
 			.withDescription("Boolean flag to enable/disable network credit-based flow control.");
 
+	public static final ConfigOption<Boolean> NETWORK_FORCE_SPILLING_BARRIER_ALIGNMENT =
+		key("taskmanager.network.force-spilling-barrier-alignment")
+			.defaultValue(true)
+			.withDescription("Boolean flag to enable/disable spilling barrier alignment. When using non " +
+				"spilling alignment (this option disabled), floating buffers in credit base flow control " +
+				"might not be efficiently used during barrier alignment. This can lead to reduced max " +
+				"network throughput especially in high latency networks. Enabling spilling solves this " +
+				"problem, but put more strain on IO system and increases latencies in a period just " +
+				"after barrier alignment.");
+
 	// ------------------------------------------------------------------------
 	//  Task Options
 	// ------------------------------------------------------------------------
