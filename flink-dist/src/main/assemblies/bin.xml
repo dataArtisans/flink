@@ -40,6 +40,9 @@ under the License.
 			<includes>
 				<include>org.slf4j:slf4j-log4j12</include>
 				<include>log4j:log4j</include>
+				<include>com.github.oshi:oshi-core</include>
+				<include>net.java.dev.jna:jna-platform</include>
+				<include>net.java.dev.jna:jna</include>
 			</includes>
 		</dependencySet>
 	</dependencySets>

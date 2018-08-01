@@ -171,6 +171,29 @@ under the License.
 			<scope>compile</scope>
 		</dependency>
 
+		<!-- System metrics logging (unclear license compatibility!) -->
+
+		<dependency>
+			<groupId>com.github.oshi</groupId>
+			<artifactId>oshi-core</artifactId>
+			<version>3.4.0</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>net.java.dev.jna</groupId>
+			<artifactId>jna-platform</artifactId>
+			<version>4.2.2</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>net.java.dev.jna</groupId>
+			<artifactId>jna</artifactId>
+			<version>4.2.2</version>
+			<scope>runtime</scope>
+		</dependency>
+
 		<!--
 			The Hadoop 2 Uber jar should not go into the Flink dist jar, but
 			sit next to it. Hence, we set it to 'provided' here.
@@ -518,6 +541,9 @@ under the License.
 								<excludes>
 									<exclude>org.slf4j:slf4j-log4j12</exclude>
 									<exclude>log4j:log4j</exclude>
+									<exclude>com.github.oshi:oshi-core</exclude>
+									<exclude>net.java.dev.jna:jna-platform</exclude>
+									<exclude>net.java.dev.jna:jna</exclude>
 								</excludes>
 							</artifactSet>
 							<transformers>

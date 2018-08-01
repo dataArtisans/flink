@@ -128,7 +128,7 @@
 
 		<file>
 			<source>../flink-metrics/flink-metrics-slf4j/target/flink-metrics-slf4j-${project.version}.jar</source>
-			<outputDirectory>opt/</outputDirectory>
+			<outputDirectory>lib/</outputDirectory>
 			<destName>flink-metrics-slf4j-${project.version}.jar</destName>
 			<fileMode>0644</fileMode>
 		</file>

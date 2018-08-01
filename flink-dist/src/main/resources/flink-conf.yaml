@@ -243,3 +243,8 @@ rest.port: 8081
 # Interval in milliseconds for refreshing the monitored directories.
 #historyserver.archive.fs.refresh-interval: 10000
 
+taskmanager.debug.additional-logging: true
+taskmanager.debug.additional-logging-interval: 5000
+metrics.reporters: slf4j
+metrics.reporter.slf4j.class: org.apache.flink.metrics.slf4j.Slf4jReporter
+metrics.reporter.slf4j.interval: 5 SECONDS
