@@ -357,24 +357,21 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 				return;
 			}
 
-			//It is no need to notify credit for the released channel.
-			if (!inputChannel.isReleased()) {
-				int unannouncedCredit = inputChannel.getAndResetUnannouncedCredit();
-				if (unannouncedCredit == 0) {
-					continue;
-				}
-
-				AddCredit msg = new AddCredit(
-					inputChannel.getPartitionId(),
-					unannouncedCredit,
-					inputChannel.getInputChannelId());
-
-				// Write and flush and wait until this is done before
-				// trying to continue with the next input channel.
-				channel.writeAndFlush(msg).addListener(writeListener);
-
-				return;
+			int unannouncedCredit = inputChannel.getAndResetUnannouncedCredit();
+			if (unannouncedCredit == 0 || inputChannel.isReleased()) {
+				continue;
 			}
+
+			AddCredit msg = new AddCredit(
+				inputChannel.getPartitionId(),
+				unannouncedCredit,
+				inputChannel.getInputChannelId());
+
+			// Write and flush and wait until this is done before
+			// trying to continue with the next input channel.
+			channel.writeAndFlush(msg).addListener(writeListener);
+
+			return;
 		}
 	}
 
