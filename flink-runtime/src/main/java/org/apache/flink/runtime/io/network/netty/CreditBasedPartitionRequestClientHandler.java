@@ -89,9 +89,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 	public void addInputChannel(RemoteInputChannel listener) throws IOException {
 		checkError();
 
-		if (!inputChannels.containsKey(listener.getInputChannelId())) {
-			inputChannels.put(listener.getInputChannelId(), listener);
-		}
+		inputChannels.putIfAbsent(listener.getInputChannelId(), listener);
 	}
 
 	@Override
@@ -112,12 +110,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
 	@Override
 	public void notifyCreditAvailable(final RemoteInputChannel inputChannel) {
-		ctx.executor().execute(new Runnable() {
-			@Override
-			public void run() {
-				ctx.pipeline().fireUserEventTriggered(inputChannel);
-			}
-		});
+		ctx.executor().execute(() -> ctx.pipeline().fireUserEventTriggered(inputChannel));
 	}
 
 	// ------------------------------------------------------------------------
@@ -357,24 +350,21 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 				return;
 			}
 
-			//It is no need to notify credit for the released channel.
-			if (!inputChannel.isReleased()) {
-				int unannouncedCredit = inputChannel.getAndResetUnannouncedCredit();
-				if (unannouncedCredit == 0) {
-					continue;
-				}
-
-				AddCredit msg = new AddCredit(
-					inputChannel.getPartitionId(),
-					unannouncedCredit,
-					inputChannel.getInputChannelId());
-
-				// Write and flush and wait until this is done before
-				// trying to continue with the next input channel.
-				channel.writeAndFlush(msg).addListener(writeListener);
-
-				return;
+			int unannouncedCredit = inputChannel.getAndResetUnannouncedCredit();
+			if (unannouncedCredit == 0 || inputChannel.isReleased()) {
+				continue;
 			}
+
+			AddCredit msg = new AddCredit(
+				inputChannel.getPartitionId(),
+				unannouncedCredit,
+				inputChannel.getInputChannelId());
+
+			// Write and flush and wait until this is done before
+			// trying to continue with the next input channel.
+			channel.writeAndFlush(msg).addListener(writeListener);
+
+			return;
 		}
 	}
 

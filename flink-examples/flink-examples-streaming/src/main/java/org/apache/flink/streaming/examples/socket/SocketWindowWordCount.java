@@ -19,12 +19,17 @@
 package org.apache.flink.streaming.examples.socket;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
+import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
+
+import javax.annotation.Nullable;
 
 /**
  * Implements a streaming windowed version of the "WordCount" program.
@@ -60,12 +65,27 @@ public class SocketWindowWordCount {
 
 		// get the execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.getConfig().setAutoWatermarkInterval(500);
 
 		// get input data by connecting to the socket
 		DataStream<String> text = env.socketTextStream(hostname, port, "\n");
 
 		// parse the data, group it, window it, and aggregate the counts
 		DataStream<WordWithCount> windowCounts = text
+				.assignTimestampsAndWatermarks(new AssignerWithPeriodicWatermarks<String>() {
+					long lastWatermark = 0;
+
+					@Nullable
+					@Override
+					public Watermark getCurrentWatermark() {
+						return new Watermark(lastWatermark++);
+					}
+
+					@Override
+					public long extractTimestamp(String element, long previousElementTimestamp) {
+						return 0;
+					}
+				})
 
 				.flatMap(new FlatMapFunction<String, WordWithCount>() {
 					@Override
@@ -83,6 +103,24 @@ public class SocketWindowWordCount {
 					@Override
 					public WordWithCount reduce(WordWithCount a, WordWithCount b) {
 						return new WordWithCount(a.word, a.count + b.count);
+					}
+				})
+
+				.keyBy("count")
+				.map(new MapFunction<WordWithCount, WordWithCount>() {
+					@Override
+					public WordWithCount map(
+						WordWithCount value) throws Exception {
+						return value;
+					}
+				})
+
+				.keyBy("word")
+				.map(new MapFunction<WordWithCount, WordWithCount>() {
+					@Override
+					public WordWithCount map(
+						WordWithCount value) throws Exception {
+						return value;
 					}
 				});
 
