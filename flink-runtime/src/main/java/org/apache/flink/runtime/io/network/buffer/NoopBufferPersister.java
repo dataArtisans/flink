@@ -17,23 +17,36 @@
 
 package org.apache.flink.runtime.io.network.buffer;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The {@link BufferPersisterImpl} takes the buffers and events from a data stream and persists them.
+ * A persister that is not doing anything.
  */
-public interface BufferPersister extends AutoCloseable {
-	void add(BufferConsumer bufferConsumer, int channelId);
+public class NoopBufferPersister implements BufferPersister {
+	@Override
+	public void add(final BufferConsumer bufferConsumer, final int channelId) {
 
-	CompletableFuture<?> persist() throws IOException;
+	}
 
 	@Override
-	void close() throws IOException, InterruptedException;
+	public CompletableFuture<?> persist() {
+		return CompletableFuture.completedFuture(null);
+	}
 
-	long getPendingBytes();
+	@Override
+	public void close() {
+	}
 
-	void flushAll();
+	@Override
+	public long getPendingBytes() {
+		return 0;
+	}
 
-	void flush(int channelId);
+	@Override
+	public void flushAll() {
+	}
+
+	@Override
+	public void flush(final int channelId) {
+	}
 }

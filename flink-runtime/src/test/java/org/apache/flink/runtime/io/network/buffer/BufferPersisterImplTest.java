@@ -34,9 +34,9 @@ import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.
 import static org.junit.Assert.assertArrayEquals;
 
 /**
- * Tests for {@link BufferPersister}.
+ * Tests for {@link BufferPersisterImpl}.
  */
-public class BufferPersisterTest {
+public class BufferPersisterImplTest {
 	private static final int BUFFER_SIZE = 32 * 1024;
 
 	@Rule
@@ -48,7 +48,7 @@ public class BufferPersisterTest {
 
 		RecoverableWriter fileSystemWriter = FileSystem.get(writerPath.toUri()).createRecoverableWriter();
 
-		try (BufferPersister bufferPersister = new BufferPersister(fileSystemWriter, writerPath, 2)) {
+		try (BufferPersister bufferPersister = new BufferPersisterImpl(fileSystemWriter, writerPath, 2)) {
 
 			bufferPersister.add(createFilledFinishedBufferConsumer(BUFFER_SIZE), 0);
 			bufferPersister.add(createFilledFinishedBufferConsumer(BUFFER_SIZE), 0);
