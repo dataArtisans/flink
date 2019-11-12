@@ -59,26 +59,26 @@ public class BufferPersisterImpl implements BufferPersister {
 	}
 
 	@Override
-	public void add(BufferConsumer bufferConsumer, int channelId) {
+	public synchronized void add(BufferConsumer bufferConsumer, int channelId) {
 		// do not spill the currently being added bufferConsumer, as it's empty
 		spill(channels[channelId]);
 		channels[channelId].pendingBuffers.add(bufferConsumer.copy());
 	}
 
 	@Override
-	public CompletableFuture<?> persist() throws IOException {
+	public synchronized CompletableFuture<?> persist() {
 		flushAll();
 		return writer.persist();
 	}
 
 	@Override
-	public void close() throws IOException, InterruptedException {
+	public synchronized void close() throws IOException, InterruptedException {
 		writer.close();
 
 		releaseMemory();
 	}
 
-	private void releaseMemory() {
+	private synchronized void releaseMemory() {
 		for (Channel channel : channels) {
 			while (!channel.pendingBuffers.isEmpty()) {
 				channel.pendingBuffers.poll().close();
@@ -92,14 +92,14 @@ public class BufferPersisterImpl implements BufferPersister {
 	}
 
 	@Override
-	public void flushAll() {
+	public synchronized void flushAll() {
 		for (Channel channel : channels) {
 			spill(channel);
 		}
 	}
 
 	@Override
-	public void flush(int channelId) {
+	public synchronized void flush(int channelId) {
 		spill(channels[channelId]);
 	}
 
@@ -145,6 +145,7 @@ public class BufferPersisterImpl implements BufferPersister {
 		private int partId;
 		private CompletableFuture<?> persistFuture = CompletableFuture.completedFuture(null);
 		private RecoverableFsDataOutputStream currentOutputStream;
+		private byte[] readBuffer = new byte[0];
 
 		public Writer(RecoverableWriter recoverableWriter, Path recoverableWriterBasePath) throws IOException {
 			this.recoverableWriter = recoverableWriter;
@@ -162,7 +163,7 @@ public class BufferPersisterImpl implements BufferPersister {
 			}
 		}
 
-		public synchronized CompletableFuture<?> persist() throws IOException {
+		public synchronized CompletableFuture<?> persist() {
 			checkErroneousUnsafe();
 			checkState(persistFuture.isDone(), "TODO support multiple pending persist requests (multiple ongoing checkpoints?)");
 			if (persistFuture.isDone()) {
@@ -203,7 +204,11 @@ public class BufferPersisterImpl implements BufferPersister {
 				MemorySegment segment = buffer.getMemorySegment();
 				int numBytes = buffer.getSize();
 
-				currentOutputStream.write(segment.getArray(), offset, numBytes);
+				if (readBuffer.length < numBytes) {
+					readBuffer = new byte[numBytes];
+				}
+				segment.get(offset, readBuffer, 0, numBytes);
+				currentOutputStream.write(readBuffer, 0, numBytes);
 			}
 			finally {
 				buffer.recycleBuffer();
