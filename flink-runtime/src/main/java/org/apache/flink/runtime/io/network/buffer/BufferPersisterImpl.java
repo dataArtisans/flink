@@ -114,6 +114,8 @@ public class BufferPersisterImpl implements BufferPersister {
 			if (buffer.readableBytes() > 0) {
 				writer.add(buffer);
 				writtenSomething = true;
+			} else {
+				buffer.recycleBuffer();
 			}
 			if (bufferConsumer.isFinished()) {
 				bufferConsumer.close();
