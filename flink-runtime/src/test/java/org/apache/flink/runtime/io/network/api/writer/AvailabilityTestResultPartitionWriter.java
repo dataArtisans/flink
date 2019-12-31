@@ -18,12 +18,15 @@
 
 package org.apache.flink.runtime.io.network.api.writer;
 
+import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferBuilder;
 import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 
 import javax.annotation.Nullable;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -69,7 +72,7 @@ public class AvailabilityTestResultPartitionWriter implements ResultPartitionWri
 	}
 
 	@Override
-	public boolean addBufferConsumer(BufferConsumer bufferConsumer, int targetChannel) {
+	public boolean addBufferConsumer(BufferConsumer bufferConsumer, int subpartitionIndex, boolean insertAsHead) {
 		return true;
 	}
 

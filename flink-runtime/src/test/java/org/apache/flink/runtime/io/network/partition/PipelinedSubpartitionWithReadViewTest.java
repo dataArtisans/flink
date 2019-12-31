@@ -90,14 +90,14 @@ public class PipelinedSubpartitionWithReadViewTest {
 	}
 
 	@Test(expected = IllegalStateException.class)
-	public void testAddTwoNonFinishedBuffer() {
+	public void testAddTwoNonFinishedBuffer() throws Exception {
 		subpartition.add(createBufferBuilder().createBufferConsumer());
 		subpartition.add(createBufferBuilder().createBufferConsumer());
 		assertNull(readView.getNextBuffer());
 	}
 
 	@Test
-	public void testAddEmptyNonFinishedBuffer() {
+	public void testAddEmptyNonFinishedBuffer() throws Exception {
 		assertEquals(0, availablityListener.getNumNotifications());
 
 		BufferBuilder bufferBuilder = createBufferBuilder();

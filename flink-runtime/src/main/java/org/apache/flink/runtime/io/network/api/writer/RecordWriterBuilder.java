@@ -31,6 +31,8 @@ public class RecordWriterBuilder<T extends IOReadableWritable> {
 
 	private String taskName = "test";
 
+	private boolean isUnalignedCheckpoint;
+
 	public RecordWriterBuilder<T> setChannelSelector(ChannelSelector<T> selector) {
 		this.selector = selector;
 		return this;
@@ -46,11 +48,16 @@ public class RecordWriterBuilder<T extends IOReadableWritable> {
 		return this;
 	}
 
+	public RecordWriterBuilder<T> setIsUnalignedCheckpoint(boolean isUnalignedCheckpoint) {
+		this.isUnalignedCheckpoint = isUnalignedCheckpoint;
+		return this;
+	}
+
 	public RecordWriter<T> build(ResultPartitionWriter writer) {
 		if (selector.isBroadcast()) {
-			return new BroadcastRecordWriter<>(writer, timeout, taskName);
+			return new BroadcastRecordWriter<>(writer, timeout, taskName, isUnalignedCheckpoint);
 		} else {
-			return new ChannelSelectorRecordWriter<>(writer, selector, timeout, taskName);
+			return new ChannelSelectorRecordWriter<>(writer, selector, timeout, taskName, isUnalignedCheckpoint);
 		}
 	}
 }

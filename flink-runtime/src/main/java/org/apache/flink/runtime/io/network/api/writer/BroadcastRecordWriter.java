@@ -53,8 +53,9 @@ public final class BroadcastRecordWriter<T extends IOReadableWritable> extends R
 	BroadcastRecordWriter(
 			ResultPartitionWriter writer,
 			long timeout,
-			String taskName) {
-		super(writer, timeout, taskName);
+			String taskName,
+			boolean isUnalignedCheckpoint) {
+		super(writer, timeout, taskName, isUnalignedCheckpoint);
 	}
 
 	@Override

@@ -32,6 +32,7 @@ import javax.annotation.concurrent.GuardedBy;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
@@ -90,17 +91,17 @@ class PipelinedSubpartition extends ResultSubpartition {
 	}
 
 	@Override
-	public boolean add(BufferConsumer bufferConsumer) {
-		return add(bufferConsumer, false);
+	public boolean add(BufferConsumer bufferConsumer, boolean insertAsHead) {
+		return add(bufferConsumer, false, insertAsHead);
 	}
 
 	@Override
 	public void finish() throws IOException {
-		add(EventSerializer.toBufferConsumer(EndOfPartitionEvent.INSTANCE), true);
+		add(EventSerializer.toBufferConsumer(EndOfPartitionEvent.INSTANCE), true, false);
 		LOG.debug("{}: Finished {}.", parent.getOwningTaskName(), this);
 	}
 
-	private boolean add(BufferConsumer bufferConsumer, boolean finish) {
+	private boolean add(BufferConsumer bufferConsumer, boolean finish, boolean insertAsHead) {
 		checkNotNull(bufferConsumer);
 
 		final boolean notifyDataAvailable;
@@ -111,7 +112,7 @@ class PipelinedSubpartition extends ResultSubpartition {
 			}
 
 			// Add the bufferConsumer and update the stats
-			buffers.add(bufferConsumer);
+			handleAddingBarrier(bufferConsumer, insertAsHead);
 			updateStatistics(bufferConsumer);
 			increaseBuffersInBacklog(bufferConsumer);
 			notifyDataAvailable = shouldNotifyDataAvailable() || finish;
@@ -124,6 +125,15 @@ class PipelinedSubpartition extends ResultSubpartition {
 		}
 
 		return true;
+	}
+
+	private void handleAddingBarrier(BufferConsumer bufferConsumer, boolean insertAsHead) {
+		assert Thread.holdsLock(buffers);
+		if (insertAsHead) {
+			buffers.addFirst(bufferConsumer);
+		} else {
+			buffers.add(bufferConsumer);
+		}
 	}
 
 	@Override
