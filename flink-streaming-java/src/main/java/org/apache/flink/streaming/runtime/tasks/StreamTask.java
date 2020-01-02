@@ -217,6 +217,12 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 	private Long syncSavepointId = null;
 
+	/**
+	 * It is used for judging and ignoring the duplicated unaligned checkpoints which might be triggered by
+	 * both task thread in syn way and netty thread in async way.
+	 */
+	private long currentCheckpointId = -1;
+
 	// ------------------------------------------------------------------------
 
 	/**
@@ -838,6 +844,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 			checkpointMetaData.getCheckpointId(), checkpointOptions.getCheckpointType(), getName());
 
 		final long checkpointId = checkpointMetaData.getCheckpointId();
+		if (checkpointId <= currentCheckpointId) {
+			return false;
+		}
+		currentCheckpointId = checkpointId;
 
 		if (isRunning) {
 			actionExecutor.runThrowing(() -> {

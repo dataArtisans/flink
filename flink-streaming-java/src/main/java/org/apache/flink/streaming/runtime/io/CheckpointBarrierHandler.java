@@ -40,7 +40,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public abstract class CheckpointBarrierHandler implements BufferReceivedListener {
 
 	/** The listener to be notified on complete checkpoints. */
-	private final AbstractInvokable toNotifyOnCheckpoint;
+	protected final AbstractInvokable toNotifyOnCheckpoint;
 
 	private long latestCheckpointStartDelayNanos;
 
