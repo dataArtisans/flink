@@ -855,7 +855,7 @@ public class StreamingJobGraphGenerator {
 		CheckpointingMode mode = cfg.getCheckpointingMode();
 
 		boolean isExactlyOnce;
-		if (mode == CheckpointingMode.EXACTLY_ONCE) {
+		if (mode == CheckpointingMode.EXACTLY_ONCE || mode == CheckpointingMode.UNALIGNED) {
 			isExactlyOnce = true;
 		} else if (mode == CheckpointingMode.AT_LEAST_ONCE) {
 			isExactlyOnce = false;

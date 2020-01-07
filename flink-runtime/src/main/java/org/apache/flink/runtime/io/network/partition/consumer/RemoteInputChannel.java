@@ -21,10 +21,15 @@ package org.apache.flink.runtime.io.network.partition.consumer;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentProvider;
+import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
+import org.apache.flink.runtime.checkpoint.CheckpointOptions;
+import org.apache.flink.runtime.event.AbstractEvent;
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.io.network.ConnectionID;
 import org.apache.flink.runtime.io.network.ConnectionManager;
 import org.apache.flink.runtime.io.network.PartitionRequestClient;
+import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
+import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferListener;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
@@ -515,6 +520,7 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 		try {
 
 			final boolean wasEmpty;
+			final CheckpointBarrier checkpointBarrier;
 			synchronized (receivedBuffers) {
 				// Similar to notifyBufferAvailable(), make sure that we never add a buffer
 				// after releaseAllResources() released all buffers from receivedBuffers
@@ -531,6 +537,8 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 				wasEmpty = receivedBuffers.isEmpty();
 				receivedBuffers.add(buffer);
 				recycleBuffer = false;
+
+				checkpointBarrier = parseCheckpointBarrier(buffer);
 			}
 
 			++expectedSequenceNumber;
@@ -542,11 +550,28 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 			if (backlog >= 0) {
 				onSenderBacklog(backlog);
 			}
+
+			if (checkpointBarrier != null && inputGate.bufferReceivedListener != null) {
+				inputGate.bufferReceivedListener.notifyBarrierReceived(checkpointBarrier, channelIndex);
+			}
 		} finally {
 			if (recycleBuffer) {
 				buffer.recycleBuffer();
 			}
 		}
+	}
+
+	@Nullable
+	private CheckpointBarrier parseCheckpointBarrier(Buffer buffer) throws IOException {
+		if (buffer.isBuffer()) {
+			return null;
+		}
+
+		AbstractEvent event = EventSerializer.fromBuffer(buffer, getClass().getClassLoader());
+		// reset the buffer because it would be deserialized again in SingleInputGate while getting next buffer.
+		// we can further improve to avoid double deserialization future.
+		buffer.setReaderIndex(0);
+		return event.getClass() == CheckpointBarrier.class ? (CheckpointBarrier) event : null;
 	}
 
 	public void onEmptyBuffer(int sequenceNumber, int backlog) throws IOException {

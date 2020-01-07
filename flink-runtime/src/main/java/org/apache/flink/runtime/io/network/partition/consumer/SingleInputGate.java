@@ -29,6 +29,7 @@ import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.buffer.BufferDecompressor;
 import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
+import org.apache.flink.runtime.io.network.buffer.BufferReceivedListener;
 import org.apache.flink.runtime.io.network.partition.PartitionProducerStateProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
@@ -171,6 +172,9 @@ public class SingleInputGate extends InputGate {
 	private final CompletableFuture<Void> closeFuture;
 
 	@Nullable
+	protected BufferReceivedListener bufferReceivedListener;
+
+	@Nullable
 	private final BufferDecompressor bufferDecompressor;
 
 	public SingleInputGate(
@@ -243,6 +247,11 @@ public class SingleInputGate extends InputGate {
 
 			requestedPartitionsFlag = true;
 		}
+	}
+
+	@Override
+	public void registerBufferReceivedListener(BufferReceivedListener bufferReceivedListener) {
+		this.bufferReceivedListener = checkNotNull(bufferReceivedListener);
 	}
 
 	// ------------------------------------------------------------------------
