@@ -21,6 +21,10 @@ package org.apache.flink.runtime.taskexecutor;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.time.Time;
+import org.apache.flink.configuration.CheckpointingOptions;
+import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.core.fs.Path;
+import org.apache.flink.core.fs.RecoverableWriter;
 import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
 import org.apache.flink.runtime.blob.BlobCacheService;
 import org.apache.flink.runtime.blob.TransientBlobCache;
@@ -53,6 +57,9 @@ import org.apache.flink.runtime.heartbeat.HeartbeatTarget;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.instance.HardwareDescription;
 import org.apache.flink.runtime.instance.InstanceID;
+import org.apache.flink.runtime.io.network.buffer.BufferPersister;
+import org.apache.flink.runtime.io.network.buffer.BufferPersisterImpl;
+import org.apache.flink.runtime.io.network.buffer.NoopBufferPersister;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.TaskExecutorPartitionInfo;
@@ -558,6 +565,32 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				throw new TaskSubmissionException("Could not submit task.", e);
 			}
 
+			final BufferPersister bufferPersister;
+			try {
+				final String persistLocation =
+					taskManagerConfiguration.getConfiguration().getString(CheckpointingOptions.PERSIST_LOCATION_CONFIG);
+				final int numOutputChannels = tdd.getProducedPartitions().stream()
+					.mapToInt(ResultPartitionDeploymentDescriptor::getNumberOfSubpartitions)
+					.sum();
+				if (numOutputChannels == 0 || persistLocation == null) {
+					bufferPersister = new NoopBufferPersister();
+				} else {
+					final Path jobPath = new Path(persistLocation, taskInformation.getJobVertexId().toHexString());
+					final Path writerPath = new Path(jobPath, tdd.getExecutionAttemptId().toHexString());
+					final RecoverableWriter fileSystemWriter =
+						FileSystem.get(writerPath.toUri()).createRecoverableWriter();
+
+					bufferPersister = new BufferPersisterImpl(
+						fileSystemWriter,
+						writerPath,
+						numOutputChannels,
+						taskMetricGroup.counter("writtenBytes"),
+						taskMetricGroup.counter("persistedBytes"));
+				}
+			} catch (IOException e) {
+				throw new TaskSubmissionException("Could not setup buffer persister.", e);
+			}
+
 			Task task = new Task(
 				jobInformation,
 				taskInformation,
@@ -586,7 +619,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				taskMetricGroup,
 				resultPartitionConsumableNotifier,
 				partitionStateChecker,
-				getRpcService().getExecutor());
+				getRpcService().getExecutor(),
+				bufferPersister);
 
 			taskMetricGroup.gauge(MetricNames.IS_BACKPRESSURED, task::isBackPressured);
 

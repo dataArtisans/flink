@@ -18,11 +18,13 @@
 package org.apache.flink.runtime.io.network.buffer;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.core.fs.RecoverableFsDataOutputStream;
 import org.apache.flink.core.fs.RecoverableWriter;
 import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentFactory;
+import org.apache.flink.metrics.Counter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,17 +47,21 @@ public class BufferPersisterImpl implements BufferPersister {
 
 	private final Channel[] channels;
 	private final Writer writer;
+	private final Thread writerThread;
 
 	public BufferPersisterImpl(
 			RecoverableWriter recoverableWriter,
 			Path recoverableWriterBasePath,
-			int numberOfChannels) throws IOException {
-		writer = new Writer(recoverableWriter, recoverableWriterBasePath);
+			int numberOfChannels,
+			Counter writtenBytes,
+			Counter persistedBytes) throws IOException {
+		writer = new Writer(recoverableWriter, recoverableWriterBasePath, writtenBytes, persistedBytes);
 		channels = new Channel[numberOfChannels];
 		for (int i = 0; i < channels.length; i++) {
 			channels[i] = new Channel();
 		}
-		writer.start();
+		writerThread = new Thread(writer, "BufferPersisterWriter");
+		writerThread.start();
 	}
 
 	@Override
@@ -74,6 +80,8 @@ public class BufferPersisterImpl implements BufferPersister {
 	@Override
 	public synchronized void close() throws IOException, InterruptedException {
 		writer.close();
+		writerThread.interrupt();
+		writerThread.join();
 
 		releaseMemory();
 	}
@@ -132,9 +140,12 @@ public class BufferPersisterImpl implements BufferPersister {
 		ArrayDeque<BufferConsumer> pendingBuffers = new ArrayDeque<>();
 	}
 
-	private static class Writer extends Thread implements AutoCloseable {
+	private static class Writer implements Runnable, AutoCloseable {
 		private static final Logger LOG = LoggerFactory.getLogger(Writer.class);
 		private static final Buffer PERSIST_MARKER = new NetworkBuffer(MemorySegmentFactory.allocateUnpooledSegment(42), memorySegment -> {});
+		private final FileSystem fs;
+		private final Counter writtenBytes;
+		private final Counter persistedBytes;
 
 		private volatile boolean running = true;
 
@@ -149,9 +160,16 @@ public class BufferPersisterImpl implements BufferPersister {
 		private RecoverableFsDataOutputStream currentOutputStream;
 		private byte[] readBuffer = new byte[0];
 
-		public Writer(RecoverableWriter recoverableWriter, Path recoverableWriterBasePath) throws IOException {
+		public Writer(
+				RecoverableWriter recoverableWriter,
+				Path recoverableWriterBasePath,
+				Counter writtenBytes,
+				Counter persistedBytes) throws IOException {
 			this.recoverableWriter = recoverableWriter;
 			this.recoverableWriterBasePath = recoverableWriterBasePath;
+			fs = FileSystem.get(recoverableWriterBasePath.toUri());
+			this.writtenBytes = writtenBytes;
+			this.persistedBytes = persistedBytes;
 
 			openNewOutputStream();
 		}
@@ -211,6 +229,7 @@ public class BufferPersisterImpl implements BufferPersister {
 				}
 				segment.get(offset, readBuffer, 0, numBytes);
 				currentOutputStream.write(readBuffer, 0, numBytes);
+				writtenBytes.inc(numBytes);
 			}
 			finally {
 				buffer.recycleBuffer();
@@ -223,7 +242,14 @@ public class BufferPersisterImpl implements BufferPersister {
 			}
 			Buffer buffer = handover.poll();
 			if (buffer == PERSIST_MARKER) {
+				final long pos = currentOutputStream.getPos();
 				currentOutputStream.closeForCommit().commit();
+				persistedBytes.inc(pos);
+				final Path previousPart = assemblePartFilePath(partId - 2);
+				// cleanup old part, this could be done asynchronously
+				if (fs.exists(previousPart)) {
+					fs.delete(previousPart, true);
+				}
 				openNewOutputStream();
 				persistFuture.complete(null);
 				return get();
@@ -235,10 +261,8 @@ public class BufferPersisterImpl implements BufferPersister {
 		@Override
 		public void close() throws InterruptedException, IOException {
 			try {
-				checkErroneous();
 				running = false;
-				interrupt();
-				join();
+				checkErroneous();
 			}
 			finally {
 				currentOutputStream.close();
@@ -246,11 +270,11 @@ public class BufferPersisterImpl implements BufferPersister {
 		}
 
 		private void openNewOutputStream() throws IOException {
-			currentOutputStream = recoverableWriter.open(assemblePartFilePath());
+			currentOutputStream = recoverableWriter.open(assemblePartFilePath(partId++));
 		}
 
-		private Path assemblePartFilePath() {
-			return new Path(recoverableWriterBasePath, "part-file." + partId++);
+		private Path assemblePartFilePath(int partId) {
+			return new Path(recoverableWriterBasePath, "part-file." + partId);
 		}
 
 		private void checkErroneousUnsafe() {

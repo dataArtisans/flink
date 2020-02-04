@@ -45,6 +45,7 @@ import org.apache.flink.runtime.filecache.FileCache;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
 import org.apache.flink.runtime.io.network.NettyShuffleEnvironmentBuilder;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
+import org.apache.flink.runtime.io.network.buffer.NoopBufferPersister;
 import org.apache.flink.runtime.io.network.partition.NoOpResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
@@ -193,7 +194,8 @@ public class StreamTaskTerminationTest extends TestLogger {
 			UnregisteredMetricGroups.createUnregisteredTaskMetricGroup(),
 			new NoOpResultPartitionConsumableNotifier(),
 			mock(PartitionProducerStateChecker.class),
-			Executors.directExecutor());
+			Executors.directExecutor(),
+			new NoopBufferPersister());
 
 		CompletableFuture<Void> taskRun = CompletableFuture.runAsync(
 			() -> task.run(),

@@ -20,6 +20,7 @@ package org.apache.flink.runtime.io.network.buffer;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.core.fs.RecoverableWriter;
+import org.apache.flink.metrics.util.TestCounter;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +33,7 @@ import java.util.Arrays;
 
 import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.createFilledFinishedBufferConsumer;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link BufferPersisterImpl}.
@@ -48,7 +50,14 @@ public class BufferPersisterImplTest {
 
 		RecoverableWriter fileSystemWriter = FileSystem.get(writerPath.toUri()).createRecoverableWriter();
 
-		try (BufferPersister bufferPersister = new BufferPersisterImpl(fileSystemWriter, writerPath, 2)) {
+		final TestCounter writtenBytes = new TestCounter();
+		final TestCounter persistedBytes = new TestCounter();
+		try (BufferPersister bufferPersister = new BufferPersisterImpl(
+				fileSystemWriter,
+				writerPath,
+				2,
+				writtenBytes,
+				persistedBytes)) {
 
 			bufferPersister.add(createFilledFinishedBufferConsumer(BUFFER_SIZE), 0);
 			bufferPersister.add(createFilledFinishedBufferConsumer(BUFFER_SIZE), 0);
@@ -69,6 +78,9 @@ public class BufferPersisterImplTest {
 
 			bufferPersister.persist().get();
 
+			assertEquals(BUFFER_SIZE * 5 + BUFFER_SIZE / 2, writtenBytes.getCount());
+			assertEquals(BUFFER_SIZE * 5 + BUFFER_SIZE / 2, persistedBytes.getCount());
+
 			assertFileSizes(temporaryFolder.getRoot(), BUFFER_SIZE * 5 + BUFFER_SIZE / 2);
 
 			unfinishedBufferBuilder1.finish();
@@ -79,7 +91,9 @@ public class BufferPersisterImplTest {
 
 			bufferPersister.persist().get();
 
-			assertFileSizes(temporaryFolder.getRoot(), BUFFER_SIZE * 5 + BUFFER_SIZE / 2, BUFFER_SIZE * 2);
+			assertEquals(BUFFER_SIZE * 5 + BUFFER_SIZE / 2, BUFFER_SIZE * 2, writtenBytes.getCount());
+			assertEquals(BUFFER_SIZE * 5 + BUFFER_SIZE / 2, BUFFER_SIZE * 2, persistedBytes.getCount());
+			assertFileSizes(temporaryFolder.getRoot(), BUFFER_SIZE * 2);
 		}
 	}
 

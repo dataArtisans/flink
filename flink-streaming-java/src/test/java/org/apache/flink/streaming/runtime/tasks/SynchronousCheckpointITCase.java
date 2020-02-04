@@ -42,6 +42,7 @@ import org.apache.flink.runtime.filecache.FileCache;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.NettyShuffleEnvironmentBuilder;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
+import org.apache.flink.runtime.io.network.buffer.NoopBufferPersister;
 import org.apache.flink.runtime.io.network.partition.NoOpResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -268,7 +269,8 @@ public class SynchronousCheckpointITCase {
 				taskMetricGroup,
 				consumableNotifier,
 				partitionProducerStateChecker,
-				executor);
+				executor,
+				new NoopBufferPersister());
 	}
 
 	private static class TaskCleaner implements AutoCloseable {

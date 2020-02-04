@@ -25,6 +25,7 @@ import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.PartitionInfo;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
+import org.apache.flink.runtime.io.network.buffer.BufferPersister;
 import org.apache.flink.runtime.io.network.partition.PartitionProducerStateProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
@@ -121,11 +122,13 @@ public interface ShuffleEnvironment<P extends ResultPartitionWriter, G extends I
 	 *
 	 * @param ownerContext the owner context relevant for partition creation
 	 * @param resultPartitionDeploymentDescriptors descriptors of the partition, produced by the owner
+	 * @param bufferPersister
 	 * @return collection of the {@link ResultPartitionWriter ResultPartitionWriters}
 	 */
 	Collection<P> createResultPartitionWriters(
 		ShuffleIOOwnerContext ownerContext,
-		Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors);
+		Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+		BufferPersister bufferPersister);
 
 	/**
 	 * Release local resources occupied by the given partitions.

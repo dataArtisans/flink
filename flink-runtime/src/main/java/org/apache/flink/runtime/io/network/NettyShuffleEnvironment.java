@@ -27,6 +27,7 @@ import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.PartitionInfo;
 import org.apache.flink.runtime.io.disk.FileChannelManager;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
+import org.apache.flink.runtime.io.network.buffer.BufferPersister;
 import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
 import org.apache.flink.runtime.io.network.metrics.InputChannelMetrics;
 import org.apache.flink.runtime.io.network.metrics.NettyShuffleMetricFactory;
@@ -185,14 +186,18 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
 	@Override
 	public Collection<ResultPartition> createResultPartitionWriters(
 			ShuffleIOOwnerContext ownerContext,
-			Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors) {
+			Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+			BufferPersister bufferPersister) {
 		synchronized (lock) {
 			Preconditions.checkState(!isClosed, "The NettyShuffleEnvironment has already been shut down.");
 
 			ResultPartition[] resultPartitions = new ResultPartition[resultPartitionDeploymentDescriptors.size()];
 			int counter = 0;
 			for (ResultPartitionDeploymentDescriptor rpdd : resultPartitionDeploymentDescriptors) {
-				resultPartitions[counter++] = resultPartitionFactory.create(ownerContext.getOwnerName(), rpdd);
+				resultPartitions[counter++] = resultPartitionFactory.create(
+					ownerContext.getOwnerName(),
+					rpdd,
+					bufferPersister);
 			}
 
 			registerOutputMetrics(config.isNetworkDetailedMetrics(), ownerContext.getOutputGroup(), resultPartitions);

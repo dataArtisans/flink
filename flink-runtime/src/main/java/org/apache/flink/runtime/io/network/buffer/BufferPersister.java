@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 public interface BufferPersister extends AutoCloseable {
 	void add(BufferConsumer bufferConsumer, int channelId);
 
-	CompletableFuture<?> persist() throws IOException;
+	CompletableFuture<?> persist();
 
 	@Override
 	void close() throws IOException, InterruptedException;

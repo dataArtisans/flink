@@ -24,6 +24,7 @@ import org.apache.flink.runtime.deployment.ResultPartitionDeploymentDescriptor;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.PartitionInfo;
 import org.apache.flink.runtime.io.network.NettyShuffleEnvironmentBuilder;
+import org.apache.flink.runtime.io.network.buffer.BufferPersister;
 import org.apache.flink.runtime.io.network.partition.consumer.SingleInputGate;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.shuffle.ShuffleEnvironment;
@@ -168,8 +169,14 @@ public class TaskExecutorPartitionTrackerImplTest extends TestLogger {
 		}
 
 		@Override
-		public Collection<ResultPartition> createResultPartitionWriters(ShuffleIOOwnerContext ownerContext, Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors) {
-			return backingShuffleEnvironment.createResultPartitionWriters(ownerContext, resultPartitionDeploymentDescriptors);
+		public Collection<ResultPartition> createResultPartitionWriters(
+				ShuffleIOOwnerContext ownerContext,
+				Collection<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+				BufferPersister bufferPersister) {
+			return backingShuffleEnvironment.createResultPartitionWriters(
+				ownerContext,
+				resultPartitionDeploymentDescriptors,
+				bufferPersister);
 		}
 
 		@Override

@@ -21,9 +21,11 @@ package org.apache.flink.runtime.io.network.partition;
 import org.apache.flink.runtime.io.disk.FileChannelManager;
 import org.apache.flink.runtime.io.disk.NoOpFileChannelManager;
 import org.apache.flink.runtime.io.network.NettyShuffleEnvironment;
+import org.apache.flink.runtime.io.network.buffer.BufferPersister;
 import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.buffer.BufferPoolOwner;
 import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
+import org.apache.flink.runtime.io.network.buffer.NoopBufferPersister;
 import org.apache.flink.util.function.FunctionWithException;
 
 import java.io.IOException;
@@ -64,6 +66,8 @@ public class ResultPartitionBuilder {
 	private boolean blockingShuffleCompressionEnabled = false;
 
 	private String compressionCodec = "LZ4";
+
+	private BufferPersister bufferPersister = new NoopBufferPersister();
 
 	public ResultPartitionBuilder setResultPartitionId(ResultPartitionID partitionId) {
 		this.partitionId = partitionId;
@@ -149,6 +153,11 @@ public class ResultPartitionBuilder {
 		return this;
 	}
 
+	public ResultPartitionBuilder setBufferPersister(BufferPersister bufferPersister) {
+		this.bufferPersister = bufferPersister;
+		return this;
+	}
+
 	public ResultPartition build() {
 		ResultPartitionFactory resultPartitionFactory = new ResultPartitionFactory(
 			partitionManager,
@@ -171,6 +180,7 @@ public class ResultPartitionBuilder {
 			partitionType,
 			numberOfSubpartitions,
 			numTargetKeyGroups,
-			factory);
+			factory,
+			bufferPersister);
 	}
 }

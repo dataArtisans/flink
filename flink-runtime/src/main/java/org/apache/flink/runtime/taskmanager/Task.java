@@ -51,6 +51,7 @@ import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.NettyShuffleEnvironment;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
+import org.apache.flink.runtime.io.network.buffer.BufferPersister;
 import org.apache.flink.runtime.io.network.partition.PartitionProducerStateProvider;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
@@ -300,7 +301,8 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 		@Nonnull TaskMetricGroup metricGroup,
 		ResultPartitionConsumableNotifier resultPartitionConsumableNotifier,
 		PartitionProducerStateChecker partitionProducerStateChecker,
-		Executor executor) {
+		Executor executor,
+		BufferPersister bufferPersister) {
 
 		Preconditions.checkNotNull(jobInformation);
 		Preconditions.checkNotNull(taskInformation);
@@ -366,7 +368,8 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 		// produced intermediate result partitions
 		final ResultPartitionWriter[] resultPartitionWriters = shuffleEnvironment.createResultPartitionWriters(
 			taskShuffleContext,
-			resultPartitionDeploymentDescriptors).toArray(new ResultPartitionWriter[] {});
+			resultPartitionDeploymentDescriptors,
+			bufferPersister).toArray(new ResultPartitionWriter[0]);
 
 		this.consumableNotifyingPartitionWriters = ConsumableNotifyingResultPartitionWriterDecorator.decorate(
 			resultPartitionDeploymentDescriptors,

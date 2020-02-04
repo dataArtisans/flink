@@ -93,4 +93,9 @@ public class MultipleRecordWriters<T extends IOReadableWritable> implements Reco
 			recordWriter.close();
 		}
 	}
+
+	@Override
+	public CompletableFuture<?> persist() {
+		return CompletableFuture.allOf(recordWriters.stream().map(RecordWriter::persist).toArray(CompletableFuture[]::new));
+	}
 }

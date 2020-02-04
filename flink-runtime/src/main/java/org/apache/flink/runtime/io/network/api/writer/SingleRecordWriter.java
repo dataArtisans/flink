@@ -64,4 +64,9 @@ public class SingleRecordWriter<T extends IOReadableWritable> implements RecordW
 	public void close() {
 		recordWriter.close();
 	}
+
+	@Override
+	public CompletableFuture<?> persist() {
+		return recordWriter.persist();
+	}
 }

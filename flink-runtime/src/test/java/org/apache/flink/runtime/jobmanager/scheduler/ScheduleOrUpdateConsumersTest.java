@@ -150,8 +150,10 @@ public class ScheduleOrUpdateConsumersTest extends TestLogger {
 
 			// The order of intermediate result creation in the job graph specifies which produced
 			// result partition is pipelined/blocking.
-			final RecordWriter<IntValue> pipelinedWriter = new RecordWriterBuilder<IntValue>().build(getEnvironment().getWriter(0));
-			final RecordWriter<IntValue> blockingWriter = new RecordWriterBuilder<IntValue>().build(getEnvironment().getWriter(1));
+			final RecordWriter<IntValue> pipelinedWriter = new RecordWriterBuilder<IntValue>().build(getEnvironment().getWriter(0
+			));
+			final RecordWriter<IntValue> blockingWriter = new RecordWriterBuilder<IntValue>().build(getEnvironment().getWriter(1
+			));
 			writers.add(pipelinedWriter);
 			writers.add(blockingWriter);
 

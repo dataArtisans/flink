@@ -43,6 +43,7 @@ import org.apache.flink.runtime.filecache.FileCache;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
 import org.apache.flink.runtime.io.network.NettyShuffleEnvironmentBuilder;
+import org.apache.flink.runtime.io.network.buffer.NoopBufferPersister;
 import org.apache.flink.runtime.memory.MemoryManagerBuilder;
 import org.apache.flink.runtime.shuffle.ShuffleEnvironment;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
@@ -225,7 +226,8 @@ public class JvmExitOnFatalErrorTest {
 						UnregisteredMetricGroups.createUnregisteredTaskMetricGroup(),
 						new NoOpResultPartitionConsumableNotifier(),
 						new NoOpPartitionProducerStateChecker(),
-						executor);
+						executor,
+						new NoopBufferPersister());
 
 				System.err.println("starting task thread");
 

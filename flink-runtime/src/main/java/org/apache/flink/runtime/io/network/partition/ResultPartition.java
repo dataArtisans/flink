@@ -116,7 +116,8 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 		int numTargetKeyGroups,
 		ResultPartitionManager partitionManager,
 		@Nullable BufferCompressor bufferCompressor,
-		FunctionWithException<BufferPoolOwner, BufferPool, IOException> bufferPoolFactory) {
+		FunctionWithException<BufferPoolOwner, BufferPool, IOException> bufferPoolFactory,
+		BufferPersister bufferPersister) {
 
 		this.owningTaskName = checkNotNull(owningTaskName);
 		this.partitionId = checkNotNull(partitionId);
@@ -126,7 +127,7 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 		this.partitionManager = checkNotNull(partitionManager);
 		this.bufferCompressor = bufferCompressor;
 		this.bufferPoolFactory = bufferPoolFactory;
-		this.bufferPersister = new NoopBufferPersister();
+		this.bufferPersister = bufferPersister;
 	}
 
 	/**
@@ -204,7 +205,7 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 			subpartition = subpartitions[subpartitionIndex];
 
 			if (bufferPersister != null) {
-				bufferPersister.add(bufferConsumer.copy(), subpartitionIndex);
+				bufferPersister.add(bufferConsumer, subpartitionIndex);
 			}
 		}
 		catch (Exception ex) {
@@ -332,6 +333,11 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 				break;
 			}
 		}
+	}
+
+	@Override
+	public CompletableFuture<?> persist() {
+		return bufferPersister.persist();
 	}
 
 	/**

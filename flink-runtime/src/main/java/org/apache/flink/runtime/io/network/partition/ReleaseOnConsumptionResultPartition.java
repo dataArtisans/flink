@@ -18,6 +18,7 @@
 package org.apache.flink.runtime.io.network.partition;
 
 import org.apache.flink.runtime.io.network.buffer.BufferCompressor;
+import org.apache.flink.runtime.io.network.buffer.BufferPersister;
 import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.buffer.BufferPoolOwner;
 import org.apache.flink.util.function.FunctionWithException;
@@ -54,7 +55,8 @@ public class ReleaseOnConsumptionResultPartition extends ResultPartition {
 			int numTargetKeyGroups,
 			ResultPartitionManager partitionManager,
 			@Nullable BufferCompressor bufferCompressor,
-			FunctionWithException<BufferPoolOwner, BufferPool, IOException> bufferPoolFactory) {
+			FunctionWithException<BufferPoolOwner, BufferPool, IOException> bufferPoolFactory,
+			BufferPersister bufferPersister) {
 		super(
 			owningTaskName,
 			partitionId,
@@ -63,7 +65,8 @@ public class ReleaseOnConsumptionResultPartition extends ResultPartition {
 			numTargetKeyGroups,
 			partitionManager,
 			bufferCompressor,
-			bufferPoolFactory);
+			bufferPoolFactory,
+			bufferPersister);
 
 		this.consumedSubpartitions = new boolean[subpartitions.length];
 		this.numUnconsumedSubpartitions = subpartitions.length;
