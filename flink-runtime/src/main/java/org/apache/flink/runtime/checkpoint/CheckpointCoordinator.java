@@ -867,11 +867,12 @@ public class CheckpointCoordinator {
 				Preconditions.checkState(
 					!checkpoint.isDiscarded(),
 					"Received message for discarded but non-removed checkpoint " + checkpointId);
-				LOG.info("Decline checkpoint {} by task {} of job {} at {}.",
+				LOG.info("Decline checkpoint {} by task {} of job {} at {}, {}" ,
 					checkpointId,
 					message.getTaskExecutionId(),
 					job,
-					taskManagerLocationInfo);
+					taskManagerLocationInfo,
+					message.getReason());
 				final CheckpointException checkpointException;
 				if (message.getReason() == null) {
 					checkpointException =

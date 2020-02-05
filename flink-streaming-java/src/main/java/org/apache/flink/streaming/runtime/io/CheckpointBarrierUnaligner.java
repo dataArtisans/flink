@@ -100,9 +100,9 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 	 */
 	@Override
 	public boolean processBarrier(CheckpointBarrier receivedBarrier, int channelIndex, long bufferedBytes) throws Exception {
-		readBarrier(channelIndex);
-
 		final long barrierId = receivedBarrier.getId();
+		readBarrier(channelIndex, barrierId);
+
 		if (barrierId > currentCheckpointId) {
 			currentCheckpointId = barrierId;
 			notifyCheckpoint(receivedBarrier, bufferedBytes, 0);
@@ -167,7 +167,7 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		return currentNumBarrierReceived == 0;
 	}
 
-	private void readBarrier(int channelIndex) throws IOException {
+	private void readBarrier(int channelIndex, long barrierId) throws IOException {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("{}: Read barrier from channel {}.", taskName, channelIndex);
 		}
@@ -180,7 +180,8 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 			}
 		}
 		else {
-			throw new IOException("Stream corrupt: Repeated barrier for same checkpoint on input " + channelIndex);
+			LOG.error("Stream corrupt: Repeated barrier for same checkpoint on input " + channelIndex +
+				"; current checkpoint=" + currentCheckpointId + "; barrierId=" + barrierId);
 		}
 	}
 
