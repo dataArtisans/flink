@@ -114,7 +114,12 @@ public class LocalExecutor implements PipelineExecutor {
 						.build();
 
 		final MiniCluster miniCluster = new MiniCluster(miniClusterConfiguration);
-		miniCluster.start();
+		try {
+			miniCluster.start();
+		} catch (Throwable t) {
+			miniCluster.close();
+			throw t;
+		}
 
 		configuration.setInteger(RestOptions.PORT, miniCluster.getRestAddress().get().getPort());
 

@@ -20,6 +20,8 @@ package org.apache.flink.core.memory;
 
 import org.apache.flink.annotation.Internal;
 
+import sun.nio.ch.DirectBuffer;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -95,7 +97,7 @@ public final class MemorySegmentFactory {
 	 */
 	public static MemorySegment allocateUnpooledOffHeapMemory(int size, Object owner) {
 		ByteBuffer memory = ByteBuffer.allocateDirect(size);
-		return new HybridMemorySegment(memory, owner, null);
+		return new HybridMemorySegment(memory, owner, ((DirectBuffer) memory).cleaner()::clean);
 	}
 
 	/**

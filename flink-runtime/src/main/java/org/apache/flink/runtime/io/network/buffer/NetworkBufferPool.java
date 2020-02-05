@@ -126,6 +126,10 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 			int allocated = availableMemorySegments.size();
 
 			// free some memory
+			for (final MemorySegment memorySegment : availableMemorySegments) {
+				memorySegment.free();
+			}
+
 			availableMemorySegments.clear();
 
 			long requiredMb = (sizeInLong * numberOfSegmentsToAllocate) >> 20;
