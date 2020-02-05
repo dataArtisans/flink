@@ -269,6 +269,8 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 	/** This class loader should be set as the context class loader for threads that may dynamically load user code. */
 	private ClassLoader userCodeClassLoader;
 
+	private final BufferPersister bufferPersister;
+
 	/**
 	 * <p><b>IMPORTANT:</b> This constructor may not start any work that would need to
 	 * be undone in the case of a failing task deployment.</p>
@@ -357,6 +359,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
 		this.partitionProducerStateChecker = Preconditions.checkNotNull(partitionProducerStateChecker);
 		this.executor = Preconditions.checkNotNull(executor);
+		this.bufferPersister = Preconditions.checkNotNull(bufferPersister);
 
 		// create the reader and writer structures
 
@@ -677,7 +680,8 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 				checkpointResponder,
 				taskManagerConfig,
 				metrics,
-				this);
+				this,
+				bufferPersister);
 
 			// Make sure the user code classloader is accessible thread-locally.
 			// We are setting the correct context class loader before instantiating the invokable

@@ -100,8 +100,4 @@ public interface ResultPartitionWriter extends AutoCloseable, AvailabilityProvid
 	 * <p>Closing of partition is still needed afterwards.
 	 */
 	void finish() throws IOException;
-
-	default CompletableFuture<?> persist() {
-		throw new UnsupportedOperationException();
-	}
 }

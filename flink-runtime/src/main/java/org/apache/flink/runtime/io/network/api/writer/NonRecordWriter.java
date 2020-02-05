@@ -55,8 +55,4 @@ public class NonRecordWriter<T extends IOReadableWritable> implements RecordWrit
 	public void close() {
 	}
 
-	@Override
-	public CompletableFuture<?> persist() {
-		return CompletableFuture.completedFuture(null);
-	}
 }

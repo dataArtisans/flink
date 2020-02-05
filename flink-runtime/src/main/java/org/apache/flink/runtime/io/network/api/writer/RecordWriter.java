@@ -283,10 +283,6 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 		}
 	}
 
-	public CompletableFuture<?> persist() {
-		return targetPartition.persist();
-	}
-
 	// ------------------------------------------------------------------------
 
 	/**

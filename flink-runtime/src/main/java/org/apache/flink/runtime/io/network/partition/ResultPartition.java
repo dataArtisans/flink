@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -333,11 +332,6 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 				break;
 			}
 		}
-	}
-
-	@Override
-	public CompletableFuture<?> persist() {
-		return bufferPersister.persist();
 	}
 
 	/**
