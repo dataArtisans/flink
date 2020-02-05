@@ -142,6 +142,6 @@ public class CheckpointingOptions {
 	@Documentation.ExcludeFromDocumentation("This option is only used for testing at the moment.")
 	public static final ConfigOption<String> PERSIST_LOCATION_CONFIG = ConfigOptions
 		.key("in-flight.data.location")
-		.defaultValue(System.getProperty("java.io.tmpdir"))
+		.noDefaultValue()
 		.withDescription("The location to which to persist in-flight data");
 }

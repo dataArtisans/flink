@@ -22,9 +22,7 @@ import org.apache.flink.api.common.accumulators.LongCounter;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
-import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.LocalStreamEnvironment;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -78,7 +76,7 @@ public class BufferPersisterIT extends TestLogger {
 		final File persistDir = temporaryFolder.newFolder();
 		StreamExecutionEnvironment env = createEnv(persistDir, 1);
 
-		createDAG(env, 40000_000_000L);
+		createDAG(env, 10_000_000L);
 		final JobExecutionResult executionResult = env.execute();
 
 		// each record has a header and a payload, that is 9 bytes.
@@ -99,7 +97,7 @@ public class BufferPersisterIT extends TestLogger {
 		final File persistDir = temporaryFolder.newFolder();
 		StreamExecutionEnvironment env = createEnv(persistDir, 2);
 
-		createDAG(env, 16_000_000);
+		createDAG(env, 20_000_000);
 		final JobExecutionResult executionResult = env.execute();
 
 		// each record has a header and a payload, that is 9 bytes.
@@ -123,7 +121,7 @@ public class BufferPersisterIT extends TestLogger {
 		conf.setString(CheckpointingOptions.PERSIST_LOCATION_CONFIG, persistDir.toURI().toString());
 		conf.setString("metrics.reporter.jmx.factory.class", "org.apache.flink.metrics.jmx.JMXReporterFactory");
 		final LocalStreamEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(parallelism, conf);
-		env.enableCheckpointing(100, CheckpointingMode.UNALIGNED);
+		env.enableCheckpointing(100);
 		return env;
 	}
 

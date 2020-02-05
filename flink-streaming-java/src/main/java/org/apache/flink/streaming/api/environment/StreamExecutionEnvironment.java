@@ -45,6 +45,7 @@ import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.client.program.ContextEnvironment;
 import org.apache.flink.client.program.OptimizerPlanEnvironment;
+import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DeploymentOptions;
 import org.apache.flink.configuration.ExecutionOptions;
@@ -89,10 +90,10 @@ import org.apache.flink.util.DynamicCodeLoadingException;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SplittableIterator;
-import org.apache.flink.util.StringUtils;
 import org.apache.flink.util.WrappingRuntimeException;
 
 import com.esotericsoftware.kryo.Serializer;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -105,6 +106,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.flink.util.StringUtils.isNullOrWhitespaceOnly;
 
 /**
  * The StreamExecutionEnvironment is the context in which a streaming program is executed. A
@@ -216,6 +218,12 @@ public class StreamExecutionEnvironment {
 		// Given this, it is safe to overwrite the execution config default values here because all other ways assume
 		// that the env is already instantiated so they will overwrite the value passed here.
 		this.configure(this.configuration, this.userClassloader);
+
+		if (!isNullOrWhitespaceOnly(getConfiguration().getString(CheckpointingOptions.PERSIST_LOCATION_CONFIG))) {
+			checkpointCfg.setCheckpointingMode(CheckpointingMode.UNALIGNED);
+			LoggerFactory.getLogger(StreamExecutionEnvironment.class)
+				.warn("Changed checkpointing mode to unaligned as in-flight.data.location was set.");
+		}
 	}
 
 	protected Configuration getConfiguration() {
@@ -1074,7 +1082,7 @@ public class StreamExecutionEnvironment {
 	 * @return The data stream that represents the data read from the given file as text lines
 	 */
 	public DataStreamSource<String> readTextFile(String filePath, String charsetName) {
-		Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
+		Preconditions.checkArgument(!isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
 
 		TextInputFormat format = new TextInputFormat(new Path(filePath));
 		format.setFilesFilter(FilePathFilter.createDefaultFilter());
@@ -1271,7 +1279,7 @@ public class StreamExecutionEnvironment {
 												TypeInformation<OUT> typeInformation) {
 
 		Preconditions.checkNotNull(inputFormat, "InputFormat must not be null.");
-		Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
+		Preconditions.checkArgument(!isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
 
 		inputFormat.setFilePath(filePath);
 		return createFileInput(inputFormat, typeInformation, "Custom File Source", watchType, interval);
