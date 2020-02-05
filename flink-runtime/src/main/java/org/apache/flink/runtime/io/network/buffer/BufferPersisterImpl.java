@@ -33,6 +33,8 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 
@@ -142,7 +144,6 @@ public class BufferPersisterImpl implements BufferPersister {
 
 	private static class Writer implements Runnable, AutoCloseable {
 		private static final Logger LOG = LoggerFactory.getLogger(Writer.class);
-		private static final Buffer PERSIST_MARKER = new NetworkBuffer(MemorySegmentFactory.allocateUnpooledSegment(42), memorySegment -> {});
 		private final FileSystem fs;
 		private final Counter writtenBytes;
 		private final Counter persistedBytes;
@@ -156,7 +157,7 @@ public class BufferPersisterImpl implements BufferPersister {
 		@Nullable
 		private Throwable asyncException;
 		private int partId;
-		private CompletableFuture<?> persistFuture = CompletableFuture.completedFuture(null);
+		private Collection<PersistentMarkingBuffer> markingBuffers = new ArrayDeque<PersistentMarkingBuffer>();
 		private RecoverableFsDataOutputStream currentOutputStream;
 		private byte[] readBuffer = new byte[0];
 
@@ -185,13 +186,12 @@ public class BufferPersisterImpl implements BufferPersister {
 
 		public synchronized CompletableFuture<?> persist() {
 			checkErroneousUnsafe();
-			checkState(persistFuture.isDone(), "TODO support multiple pending persist requests (multiple ongoing checkpoints?)");
-			if (persistFuture.isDone()) {
-				persistFuture = new CompletableFuture<>();
-			}
-			add(PERSIST_MARKER);
+			final PersistentMarkingBuffer markingBuffer = new PersistentMarkingBuffer();
+			markingBuffers.add(markingBuffer);
+			add(markingBuffer);
+			markingBuffer.getPersistFuture().whenComplete((result, e) -> markingBuffers.remove(markingBuffer));
 
-			return persistFuture;
+			return markingBuffer.getPersistFuture();
 		}
 
 		public synchronized void checkErroneous() {
@@ -210,8 +210,8 @@ public class BufferPersisterImpl implements BufferPersister {
 					if (running) {
 						asyncException = t;
 					}
-					if (!persistFuture.isDone()) {
-						persistFuture.completeExceptionally(t);
+					for (final PersistentMarkingBuffer markingBuffer : markingBuffers) {
+						markingBuffer.getPersistFuture().completeExceptionally(t);
 					}
 				}
 				LOG.error("unhandled exception in the Writer", t);
@@ -241,7 +241,7 @@ public class BufferPersisterImpl implements BufferPersister {
 				wait();
 			}
 			Buffer buffer = handover.poll();
-			if (buffer == PERSIST_MARKER) {
+			if (buffer instanceof PersistentMarkingBuffer) {
 				final long pos = currentOutputStream.getPos();
 				currentOutputStream.closeForCommit().commit();
 				persistedBytes.inc(pos);
@@ -251,7 +251,7 @@ public class BufferPersisterImpl implements BufferPersister {
 					fs.delete(previousPart, true);
 				}
 				openNewOutputStream();
-				persistFuture.complete(null);
+				((PersistentMarkingBuffer) buffer).getPersistFuture().complete(null);
 				return get();
 			}
 
@@ -280,6 +280,20 @@ public class BufferPersisterImpl implements BufferPersister {
 		private void checkErroneousUnsafe() {
 			if (asyncException != null) {
 				throw new RuntimeException(asyncException);
+			}
+		}
+
+		private static class PersistentMarkingBuffer extends NetworkBuffer {
+			private CompletableFuture<?> persistFuture = new CompletableFuture<>();
+
+			public PersistentMarkingBuffer() {
+				super(
+					MemorySegmentFactory.allocateUnpooledSegment(42),
+					memorySegment -> {});
+			}
+
+			public CompletableFuture<?> getPersistFuture() {
+				return persistFuture;
 			}
 		}
 	}
