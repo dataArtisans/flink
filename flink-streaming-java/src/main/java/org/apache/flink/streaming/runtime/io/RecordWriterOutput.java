@@ -36,6 +36,7 @@ import org.apache.flink.streaming.runtime.tasks.OperatorChain;
 import org.apache.flink.util.OutputTag;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -98,6 +99,11 @@ public class RecordWriterOutput<OUT> implements OperatorChain.WatermarkGaugeExpo
 		}
 
 		pushToRecordWriter(record);
+	}
+
+	@Override
+	public CompletableFuture<?> getAvailableFuture() {
+		return recordWriter.getAvailableFuture();
 	}
 
 	private <X> void pushToRecordWriter(StreamRecord<X> record) {

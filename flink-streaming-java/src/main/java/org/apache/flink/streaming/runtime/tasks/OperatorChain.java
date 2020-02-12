@@ -42,6 +42,7 @@ import org.apache.flink.streaming.api.graph.StreamEdge;
 import org.apache.flink.streaming.api.operators.BoundedMultiInput;
 import org.apache.flink.streaming.api.operators.BoundedOneInput;
 import org.apache.flink.streaming.api.operators.InputSelectable;
+import org.apache.flink.streaming.api.operators.OutputInternal;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.operators.Output;
 import org.apache.flink.streaming.api.operators.StreamOperator;
@@ -480,7 +481,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 	 *
 	 * @param <T> The type of the elements that can be emitted.
 	 */
-	public interface WatermarkGaugeExposingOutput<T> extends Output<T> {
+	public interface WatermarkGaugeExposingOutput<T> extends OutputInternal<T> {
 		Gauge<Long> getWatermarkGauge();
 	}
 

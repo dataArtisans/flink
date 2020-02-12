@@ -76,6 +76,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Base class for all stream operators. Operators that contain a user function should extend the class
@@ -705,12 +706,12 @@ public abstract class AbstractStreamOperator<OUT>
 	/**
 	 * Wrapping {@link Output} that updates metrics on the number of emitted elements.
 	 */
-	public static class CountingOutput<OUT> implements Output<StreamRecord<OUT>> {
-		private final Output<StreamRecord<OUT>> output;
+	public static class CountingOutput<OUT> implements OutputInternal<StreamRecord<OUT>> {
+		private final OutputInternal<StreamRecord<OUT>> output;
 		private final Counter numRecordsOut;
 
 		public CountingOutput(Output<StreamRecord<OUT>> output, Counter counter) {
-			this.output = output;
+			this.output = (OutputInternal<StreamRecord<OUT>>) output;
 			this.numRecordsOut = counter;
 		}
 
@@ -739,6 +740,21 @@ public abstract class AbstractStreamOperator<OUT>
 		@Override
 		public void close() {
 			output.close();
+		}
+
+		@Override
+		public CompletableFuture<?> getAvailableFuture() {
+			return output.getAvailableFuture();
+		}
+
+		@Override
+		public boolean isAvailable() {
+			return output.isAvailable();
+		}
+
+		@Override
+		public boolean isApproximatelyAvailable() {
+			return output.isApproximatelyAvailable();
 		}
 	}
 

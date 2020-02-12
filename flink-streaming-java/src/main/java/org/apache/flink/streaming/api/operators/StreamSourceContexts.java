@@ -27,12 +27,17 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.Preconditions;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ScheduledFuture;
 
 /**
  * Source contexts for various stream time characteristics.
  */
 public class StreamSourceContexts {
+
+	public static final Logger LOG = LoggerFactory.getLogger(StreamSourceContexts.class);
 
 	/**
 	 * Depending on the {@link TimeCharacteristic}, this method will return the adequate
@@ -89,19 +94,21 @@ public class StreamSourceContexts {
 	private static class NonTimestampContext<T> implements SourceFunction.SourceContext<T> {
 
 		private final Object lock;
-		private final Output<StreamRecord<T>> output;
+		private final OutputInternal<StreamRecord<T>> output;
 		private final StreamRecord<T> reuse;
 
 		private NonTimestampContext(Object checkpointLock, Output<StreamRecord<T>> output) {
 			this.lock = Preconditions.checkNotNull(checkpointLock, "The checkpoint lock cannot be null.");
-			this.output = Preconditions.checkNotNull(output, "The output cannot be null.");
+			this.output = (OutputInternal<StreamRecord<T>>) Preconditions.checkNotNull(output, "The output cannot be null.");
 			this.reuse = new StreamRecord<>(null);
 		}
 
 		@Override
 		public void collect(T element) {
+			final StreamRecord<T> outputRecord = reuse.replace(element);
+			output.ensureAvailable();
 			synchronized (lock) {
-				output.collect(reuse.replace(element));
+				output.collect(outputRecord);
 			}
 		}
 
