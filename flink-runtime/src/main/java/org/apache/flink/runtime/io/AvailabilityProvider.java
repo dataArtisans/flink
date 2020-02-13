@@ -67,6 +67,16 @@ public interface AvailabilityProvider {
 	}
 
 	/**
+	 * Waits for this provider to become available.
+	 */
+	default void ensureAvailable() {
+		final CompletableFuture<?> future = getAvailableFuture();
+		if (future != AVAILABLE) {
+			future.join();
+		}
+	}
+
+	/**
 	 * A availability implementation for providing the helpful functions of resetting the
 	 * available/unavailable states.
 	 */

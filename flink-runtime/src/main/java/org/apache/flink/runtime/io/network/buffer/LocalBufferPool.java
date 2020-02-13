@@ -157,6 +157,8 @@ class LocalBufferPool implements BufferPool {
 		this.currentPoolSize = numberOfRequiredMemorySegments;
 		this.maxNumberOfMemorySegments = maxNumberOfMemorySegments;
 		this.bufferPoolOwner = bufferPoolOwner;
+
+		availabilityHelper.resetAvailable();
 	}
 
 	// ------------------------------------------------------------------------
@@ -250,7 +252,7 @@ class LocalBufferPool implements BufferPool {
 			if (segment == null) {
 				segment = availableMemorySegments.poll();
 			}
-			if (segment == null) {
+			if (segment != null && numberOfRequestedMemorySegments == currentPoolSize && availableMemorySegments.isEmpty()) {
 				availabilityHelper.resetUnavailable();
 			}
 		}
@@ -393,7 +395,7 @@ class LocalBufferPool implements BufferPool {
 
 			numExcessBuffers = numberOfRequestedMemorySegments - currentPoolSize;
 			if (numExcessBuffers < 0 && availableMemorySegments.isEmpty() && networkBufferPool.isAvailable()) {
-				toNotify = availabilityHelper.getUnavailableToResetUnavailable();
+				toNotify = availabilityHelper.getUnavailableToResetAvailable();
 			}
 		}
 
@@ -408,13 +410,7 @@ class LocalBufferPool implements BufferPool {
 
 	@Override
 	public CompletableFuture<?> getAvailableFuture() {
-		if (numberOfRequestedMemorySegments >= currentPoolSize) {
-			return availabilityHelper.getAvailableFuture();
-		} else if (availabilityHelper.isApproximatelyAvailable() || networkBufferPool.isApproximatelyAvailable()) {
-			return AVAILABLE;
-		} else {
-			return CompletableFuture.anyOf(availabilityHelper.getAvailableFuture(), networkBufferPool.getAvailableFuture());
-		}
+		return availabilityHelper.getAvailableFuture();
 	}
 
 	@Override
