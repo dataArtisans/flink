@@ -294,11 +294,16 @@ public class ResultPartition implements ResultPartitionWriter, BufferPoolOwner {
 	/**
 	 * Returns the requested subpartition.
 	 */
-	public ResultSubpartitionView createSubpartitionView(int index, BufferAvailabilityListener availabilityListener) throws IOException {
+	public ResultSubpartitionView createSubpartitionView(
+			int index,
+			BufferAvailabilityListener availabilityListener,
+			PriorityEventListener priorityEventListener) throws IOException {
 		checkElementIndex(index, subpartitions.length, "Subpartition not found.");
 		checkState(!isReleased.get(), "Partition released.");
 
-		ResultSubpartitionView readView = subpartitions[index].createReadView(availabilityListener);
+		ResultSubpartitionView readView = subpartitions[index].createReadView(
+			availabilityListener,
+			priorityEventListener);
 
 		LOG.debug("Created {}", readView);
 

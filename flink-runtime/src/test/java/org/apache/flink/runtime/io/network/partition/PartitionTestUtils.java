@@ -101,7 +101,11 @@ public enum PartitionTestUtils {
 			ResultPartitionProvider partitionManager,
 			ResultPartitionID partitionId) throws IOException {
 		try {
-			partitionManager.createSubpartitionView(partitionId, 0, new NoOpBufferAvailablityListener());
+			partitionManager.createSubpartitionView(
+				partitionId,
+				0,
+				new NoOpBufferAvailablityListener(),
+				new NoOpPriorityEventListener());
 
 			fail("Should throw a PartitionNotFoundException.");
 		} catch (PartitionNotFoundException notFound) {

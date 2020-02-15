@@ -110,7 +110,7 @@ public class BoundedBlockingSubpartitionWriteReadTest {
 		final BoundedBlockingSubpartition subpartition = createAndFillPartition(numLongs);
 
 		// test & check
-		final ResultSubpartitionView reader = subpartition.createReadView(() -> {});
+		final ResultSubpartitionView reader = subpartition.createReadView(() -> {}, new NoOpPriorityEventListener());
 		readLongs(reader, numLongs, subpartition.getBuffersInBacklog(), compressionEnabled, decompressor);
 
 		// cleanup
@@ -127,7 +127,7 @@ public class BoundedBlockingSubpartitionWriteReadTest {
 
 		// test & check
 		for (int i = 0; i < 10; i++) {
-			final ResultSubpartitionView reader = subpartition.createReadView(() -> {});
+			final ResultSubpartitionView reader = subpartition.createReadView(() -> {}, new NoOpPriorityEventListener());
 			readLongs(reader, numLongs, subpartition.getBuffersInBacklog(), compressionEnabled, decompressor);
 			reader.releaseAllResources();
 		}
@@ -247,7 +247,7 @@ public class BoundedBlockingSubpartitionWriteReadTest {
 
 		final LongReader[] readerThreads = new LongReader[numReaders];
 		for (int i = 0; i < numReaders; i++) {
-			ResultSubpartitionView reader = subpartition.createReadView(() -> {});
+			ResultSubpartitionView reader = subpartition.createReadView(() -> {}, new NoOpPriorityEventListener());
 			readerThreads[i] = new LongReader(reader, numLongs, numBuffers, compressionEnabled);
 		}
 		return readerThreads;

@@ -138,7 +138,7 @@ public class ResultPartitionTest {
 
 		// a blocking partition that is not released on consumption should be consumable multiple times
 		for (int x = 0; x < 2; x++) {
-			ResultSubpartitionView subpartitionView1 = partition.createSubpartitionView(0, () -> {});
+			ResultSubpartitionView subpartitionView1 = partition.createSubpartitionView(0, () -> {}, null);
 			subpartitionView1.releaseAllResources();
 
 			// partition should not be released on consumption

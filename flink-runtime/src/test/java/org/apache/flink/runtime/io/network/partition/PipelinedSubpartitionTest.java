@@ -92,10 +92,10 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 		final PipelinedSubpartition subpartition = createSubpartition();
 
 		// Successful request
-		assertNotNull(subpartition.createReadView(new NoOpBufferAvailablityListener()));
+		assertNotNull(subpartition.createReadView(new NoOpBufferAvailablityListener(), new NoOpPriorityEventListener()));
 
 		try {
-			subpartition.createReadView(new NoOpBufferAvailablityListener());
+			subpartition.createReadView(new NoOpBufferAvailablityListener(), new NoOpPriorityEventListener());
 
 			fail("Did not throw expected exception after duplicate notifyNonEmpty view request.");
 		} catch (IllegalStateException expected) {
@@ -111,7 +111,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 		PipelinedSubpartition subpartition = mock(PipelinedSubpartition.class);
 
 		PipelinedSubpartitionView reader = new PipelinedSubpartitionView(
-			subpartition, mock(BufferAvailabilityListener.class));
+			subpartition, mock(BufferAvailabilityListener.class), new NoOpPriorityEventListener());
 
 		assertFalse(reader.isReleased());
 		verify(subpartition, times(1)).isReleased();
@@ -214,7 +214,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 
 		TestSubpartitionProducer producer = new TestSubpartitionProducer(subpartition, isSlowProducer, producerSource);
 		TestSubpartitionConsumer consumer = new TestSubpartitionConsumer(isSlowConsumer, consumerCallback);
-		final PipelinedSubpartitionView view = subpartition.createReadView(consumer);
+		final PipelinedSubpartitionView view = subpartition.createReadView(consumer, new NoOpPriorityEventListener());
 		consumer.setSubpartitionView(view);
 
 		CompletableFuture<Boolean> producerResult = CompletableFuture.supplyAsync(
@@ -261,7 +261,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 			// create the read view first
 			ResultSubpartitionView view = null;
 			if (createView) {
-				view = partition.createReadView(new NoOpBufferAvailablityListener());
+				view = partition.createReadView(new NoOpBufferAvailablityListener(), new NoOpPriorityEventListener());
 			}
 
 			partition.release();
@@ -313,7 +313,7 @@ public class PipelinedSubpartitionTest extends SubpartitionTestBase {
 
 		// Create the view
 		BufferAvailabilityListener listener = mock(BufferAvailabilityListener.class);
-		ResultSubpartitionView view = partition.createReadView(listener);
+		ResultSubpartitionView view = partition.createReadView(listener, new NoOpPriorityEventListener());
 
 		// The added bufferConsumer and end-of-partition event
 		assertNotNull(view.getNextBuffer());

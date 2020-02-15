@@ -63,7 +63,11 @@ public class ServerTransportErrorHandlingTest {
 		final ResultPartitionManager partitionManager = mock(ResultPartitionManager.class);
 
 		when(partitionManager
-			.createSubpartitionView(any(ResultPartitionID.class), anyInt(), any(BufferAvailabilityListener.class)))
+			.createSubpartitionView(
+				any(ResultPartitionID.class),
+				anyInt(),
+				any(BufferAvailabilityListener.class),
+				any()))
 			.thenAnswer(new Answer<ResultSubpartitionView>() {
 				@Override
 				public ResultSubpartitionView answer(InvocationOnMock invocationOnMock) throws Throwable {

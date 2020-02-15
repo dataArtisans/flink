@@ -58,7 +58,8 @@ public class ResultPartitionManager implements ResultPartitionProvider {
 	public ResultSubpartitionView createSubpartitionView(
 			ResultPartitionID partitionId,
 			int subpartitionIndex,
-			BufferAvailabilityListener availabilityListener) throws IOException {
+			BufferAvailabilityListener availabilityListener,
+			PriorityEventListener priorityEventListener) throws IOException {
 
 		synchronized (registeredPartitions) {
 			final ResultPartition partition = registeredPartitions.get(partitionId);
@@ -69,7 +70,7 @@ public class ResultPartitionManager implements ResultPartitionProvider {
 
 			LOG.debug("Requesting subpartition {} of {}.", subpartitionIndex, partition);
 
-			return partition.createSubpartitionView(subpartitionIndex, availabilityListener);
+			return partition.createSubpartitionView(subpartitionIndex, availabilityListener, priorityEventListener);
 		}
 	}
 

@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.io.network.partition;
 
+import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.io.network.partition.ResultSubpartition.BufferAndBacklog;
 
 import javax.annotation.Nullable;
@@ -29,7 +30,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * View over a pipelined in-memory only subpartition.
  */
-class PipelinedSubpartitionView implements ResultSubpartitionView {
+class PipelinedSubpartitionView implements ResultSubpartitionView, PriorityEventListener {
 
 	/** The subpartition this view belongs to. */
 	private final PipelinedSubpartition parent;
@@ -39,10 +40,16 @@ class PipelinedSubpartitionView implements ResultSubpartitionView {
 	/** Flag indicating whether this view has been released. */
 	private final AtomicBoolean isReleased;
 
-	PipelinedSubpartitionView(PipelinedSubpartition parent, BufferAvailabilityListener listener) {
+	private final PriorityEventListener priorityEventListener;
+
+	PipelinedSubpartitionView(
+			PipelinedSubpartition parent,
+			BufferAvailabilityListener listener,
+			PriorityEventListener priorityEventListener) {
 		this.parent = checkNotNull(parent);
 		this.availabilityListener = checkNotNull(listener);
 		this.isReleased = new AtomicBoolean();
+		this.priorityEventListener = checkNotNull(priorityEventListener);
 	}
 
 	@Nullable
@@ -95,5 +102,10 @@ class PipelinedSubpartitionView implements ResultSubpartitionView {
 		return String.format("PipelinedSubpartitionView(index: %d) of ResultPartition %s",
 				parent.index,
 				parent.parent.getPartitionId());
+	}
+
+	@Override
+	public boolean priorityEvent(BufferConsumer bufferConsumer) {
+		return priorityEventListener.priorityEvent(bufferConsumer);
 	}
 }

@@ -19,12 +19,17 @@
 package org.apache.flink.runtime.io.network.partition.consumer;
 
 import org.apache.flink.metrics.Counter;
+import org.apache.flink.runtime.event.AbstractEvent;
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.execution.CancelTaskException;
+import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
+import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
 import org.apache.flink.runtime.io.network.partition.PartitionException;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultSubpartitionView;
+
+import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -244,6 +249,23 @@ public abstract class InputChannel {
 
 		// Reached maximum backoff
 		return false;
+	}
+
+	@Nullable
+	protected CheckpointBarrier parseCheckpointBarrier(Buffer buffer) {
+		if (buffer.isBuffer()) {
+			return null;
+		}
+
+		try {
+			AbstractEvent event = EventSerializer.fromBuffer(buffer, getClass().getClassLoader());
+			// reset the buffer because it would be deserialized again in SingleInputGate while getting next buffer.
+			// we can further improve to avoid double deserialization future.
+			buffer.setReaderIndex(0);
+			return event.getClass() == CheckpointBarrier.class ? (CheckpointBarrier) event : null;
+		} catch (IOException e) {
+			throw new IllegalStateException("Checkpoint barrier should be completely in main memory", e);
+		}
 	}
 
 	// ------------------------------------------------------------------------

@@ -559,19 +559,6 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 		}
 	}
 
-	@Nullable
-	private CheckpointBarrier parseCheckpointBarrier(Buffer buffer) throws IOException {
-		if (buffer.isBuffer()) {
-			return null;
-		}
-
-		AbstractEvent event = EventSerializer.fromBuffer(buffer, getClass().getClassLoader());
-		// reset the buffer because it would be deserialized again in SingleInputGate while getting next buffer.
-		// we can further improve to avoid double deserialization future.
-		buffer.setReaderIndex(0);
-		return event.getClass() == CheckpointBarrier.class ? (CheckpointBarrier) event : null;
-	}
-
 	public void onEmptyBuffer(int sequenceNumber, int backlog) throws IOException {
 		boolean success = false;
 

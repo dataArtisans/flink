@@ -200,7 +200,9 @@ final class BoundedBlockingSubpartition extends ResultSubpartition {
 	}
 
 	@Override
-	public ResultSubpartitionView createReadView(BufferAvailabilityListener availability) throws IOException {
+	public ResultSubpartitionView createReadView(
+			BufferAvailabilityListener availability,
+			PriorityEventListener bufferReceivedListener) throws IOException {
 		synchronized (lock) {
 			checkState(!isReleased, "data partition already released");
 			checkState(isFinished, "writing of blocking partition not yet finished");

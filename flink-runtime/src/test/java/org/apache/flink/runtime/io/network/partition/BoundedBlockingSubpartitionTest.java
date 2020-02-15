@@ -72,7 +72,7 @@ public class BoundedBlockingSubpartitionTest extends SubpartitionTestBase {
 		final ResultSubpartition partition = createSubpartition();
 
 		try {
-			partition.createReadView(new NoOpBufferAvailablityListener());
+			partition.createReadView(new NoOpBufferAvailablityListener(), new NoOpPriorityEventListener());
 			fail("expected exception");
 		}
 		catch (IllegalStateException ignored) {}

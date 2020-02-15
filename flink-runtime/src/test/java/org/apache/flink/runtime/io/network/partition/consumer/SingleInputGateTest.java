@@ -41,6 +41,7 @@ import org.apache.flink.runtime.io.network.partition.BufferAvailabilityListener;
 import org.apache.flink.runtime.io.network.partition.InputChannelTestUtils;
 import org.apache.flink.runtime.io.network.partition.NoOpResultSubpartitionView;
 import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
+import org.apache.flink.runtime.io.network.partition.PriorityEventListener;
 import org.apache.flink.runtime.io.network.partition.ResultPartition;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionBuilder;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
@@ -743,7 +744,8 @@ public class SingleInputGateTest extends InputGateTestBase {
 		public ResultSubpartitionView createSubpartitionView(
 				ResultPartitionID partitionId,
 				int subpartitionIndex,
-				BufferAvailabilityListener availabilityListener) throws IOException {
+				BufferAvailabilityListener availabilityListener,
+				PriorityEventListener priorityEventListener) {
 			++counter;
 			return subpartitionView;
 		}

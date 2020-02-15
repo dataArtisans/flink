@@ -53,7 +53,7 @@ public abstract class SubpartitionTestBase extends TestLogger {
 		subpartition.release();
 
 		try {
-			subpartition.createReadView(() -> {});
+			subpartition.createReadView(() -> {}, new NoOpPriorityEventListener());
 			fail("expected an exception");
 		}
 		catch (IllegalStateException e) {
@@ -109,7 +109,9 @@ public abstract class SubpartitionTestBase extends TestLogger {
 		partition.add(createFilledFinishedBufferConsumer(BufferBuilderTestUtils.BUFFER_SIZE));
 		partition.finish();
 
-		final ResultSubpartitionView reader = partition.createReadView(new NoOpBufferAvailablityListener());
+		final ResultSubpartitionView reader = partition.createReadView(
+			new NoOpBufferAvailablityListener(),
+			new NoOpPriorityEventListener());
 
 		assertFalse(partition.isReleased());
 		assertFalse(reader.isReleased());
@@ -139,7 +141,8 @@ public abstract class SubpartitionTestBase extends TestLogger {
 		partition.add(createFilledFinishedBufferConsumer(BufferBuilderTestUtils.BUFFER_SIZE));
 		partition.finish();
 
-		final ResultSubpartitionView reader = partition.createReadView(new NoOpBufferAvailablityListener());
+		final ResultSubpartitionView reader = partition.createReadView(new NoOpBufferAvailablityListener(),
+			new NoOpPriorityEventListener());
 		reader.releaseAllResources();
 
 		// the reader must not throw an exception

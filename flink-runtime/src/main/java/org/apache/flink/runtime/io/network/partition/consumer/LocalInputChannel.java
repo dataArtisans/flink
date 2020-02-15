@@ -21,9 +21,13 @@ package org.apache.flink.runtime.io.network.partition.consumer;
 import org.apache.flink.runtime.event.TaskEvent;
 import org.apache.flink.runtime.execution.CancelTaskException;
 import org.apache.flink.runtime.io.network.TaskEventPublisher;
+import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
+import org.apache.flink.runtime.io.network.buffer.Buffer;
+import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.io.network.metrics.InputChannelMetrics;
 import org.apache.flink.runtime.io.network.partition.BufferAvailabilityListener;
 import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
+import org.apache.flink.runtime.io.network.partition.PriorityEventListener;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionManager;
 import org.apache.flink.runtime.io.network.partition.ResultSubpartition.BufferAndBacklog;
@@ -43,7 +47,7 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * An input channel, which requests a local subpartition.
  */
-public class LocalInputChannel extends InputChannel implements BufferAvailabilityListener {
+public class LocalInputChannel extends InputChannel implements BufferAvailabilityListener, PriorityEventListener {
 
 	private static final Logger LOG = LoggerFactory.getLogger(LocalInputChannel.class);
 
@@ -95,7 +99,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 	// ------------------------------------------------------------------------
 
 	@Override
-	void requestSubpartition(int subpartitionIndex) throws IOException, InterruptedException {
+	void requestSubpartition(int subpartitionIndex) throws IOException {
 
 		boolean retriggerRequest = false;
 
@@ -109,7 +113,10 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 
 				try {
 					ResultSubpartitionView subpartitionView = partitionManager.createSubpartitionView(
-						partitionId, subpartitionIndex, this);
+						partitionId,
+						subpartitionIndex,
+						this,
+						this);
 
 					if (subpartitionView == null) {
 						throw new IOException("Error requesting subpartition.");
@@ -267,5 +274,20 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 	@Override
 	public String toString() {
 		return "LocalInputChannel [" + partitionId + "]";
+	}
+
+	@Override
+	public boolean priorityEvent(BufferConsumer bufferConsumer) {
+		if (inputGate.bufferReceivedListener == null) {
+			return false;
+		}
+		final Buffer buffer = bufferConsumer.build();
+		final CheckpointBarrier barrier = parseCheckpointBarrier(buffer);
+		if (barrier == null) {
+			throw new IllegalStateException("Currently only checkpoint barriers are known priority events");
+		}
+		buffer.recycleBuffer();
+		inputGate.bufferReceivedListener.notifyBarrierReceived(barrier, channelIndex);
+		return true;
 	}
 }

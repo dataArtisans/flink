@@ -82,7 +82,7 @@ public class CancelPartitionRequestTest {
 			final ResultSubpartitionView view = spy(new InfiniteSubpartitionView(outboundBuffers, sync));
 
 			// Return infinite subpartition
-			when(partitions.createSubpartitionView(eq(pid), eq(0), any(BufferAvailabilityListener.class)))
+			when(partitions.createSubpartitionView(eq(pid), eq(0), any(BufferAvailabilityListener.class), any()))
 				.thenAnswer(new Answer<ResultSubpartitionView>() {
 					@Override
 					public ResultSubpartitionView answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -131,7 +131,7 @@ public class CancelPartitionRequestTest {
 			final ResultSubpartitionView view = spy(new InfiniteSubpartitionView(outboundBuffers, sync));
 
 			// Return infinite subpartition
-			when(partitions.createSubpartitionView(eq(pid), eq(0), any(BufferAvailabilityListener.class)))
+			when(partitions.createSubpartitionView(eq(pid), eq(0), any(BufferAvailabilityListener.class), any()))
 					.thenAnswer(new Answer<ResultSubpartitionView>() {
 						@Override
 						public ResultSubpartitionView answer(InvocationOnMock invocationOnMock) throws Throwable {

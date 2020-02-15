@@ -60,13 +60,16 @@ public class InputChannelTestUtils {
 			@Override
 			public ResultSubpartitionView answer(InvocationOnMock invocation) throws Throwable {
 				BufferAvailabilityListener channel = (BufferAvailabilityListener) invocation.getArguments()[2];
-				return sources[num++].createReadView(channel);
+				return sources[num++].createReadView(channel, new NoOpPriorityEventListener());
 			}
 		};
 
 		ResultPartitionManager manager = mock(ResultPartitionManager.class);
 		when(manager.createSubpartitionView(
-				any(ResultPartitionID.class), anyInt(), any(BufferAvailabilityListener.class)))
+			any(ResultPartitionID.class),
+			anyInt(),
+			any(BufferAvailabilityListener.class),
+			new NoOpPriorityEventListener()))
 				.thenAnswer(viewCreator);
 
 		return manager;

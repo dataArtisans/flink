@@ -130,7 +130,8 @@ public class FileChannelBoundedDataTest extends BoundedDataTestBase {
 		writeBuffers(subpartition, numberOfBuffers);
 
 		final VerifyNotificationBufferAvailabilityListener listener = new VerifyNotificationBufferAvailabilityListener();
-		final ResultSubpartitionView subpartitionView = subpartition.createReadView(listener);
+		final NoOpPriorityEventListener priorityEventListener = new NoOpPriorityEventListener();
+		final ResultSubpartitionView subpartitionView = subpartition.createReadView(listener, priorityEventListener);
 		// the notification is triggered while creating view
 		assertTrue(listener.isAvailable);
 

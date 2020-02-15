@@ -49,9 +49,10 @@ public class BoundedBlockingSubpartitionAvailabilityTest {
 	public void testInitiallyAvailable() throws Exception {
 		final ResultSubpartition subpartition = createPartitionWithData(10);
 		final CountingAvailabilityListener listener = new CountingAvailabilityListener();
+		final NoOpPriorityEventListener priorityEventListener = new NoOpPriorityEventListener();
 
 		// test
-		final ResultSubpartitionView subpartitionView = subpartition.createReadView(listener);
+		final ResultSubpartitionView subpartitionView = subpartition.createReadView(listener, priorityEventListener);
 
 		// assert
 		assertEquals(1, listener.numNotifications);
@@ -66,7 +67,8 @@ public class BoundedBlockingSubpartitionAvailabilityTest {
 		// setup
 		final BoundedBlockingSubpartition subpartition = createPartitionWithData(100_000);
 		final CountingAvailabilityListener listener = new CountingAvailabilityListener();
-		final ResultSubpartitionView reader = subpartition.createReadView(listener);
+		final NoOpPriorityEventListener priorityEventListener = new NoOpPriorityEventListener();
+		final ResultSubpartitionView reader = subpartition.createReadView(listener, priorityEventListener);
 
 		// test
 		final List<BufferAndBacklog> data = drainAvailableData(reader);
@@ -85,7 +87,8 @@ public class BoundedBlockingSubpartitionAvailabilityTest {
 		// setup
 		final ResultSubpartition subpartition = createPartitionWithData(100_000);
 		final CountingAvailabilityListener listener = new CountingAvailabilityListener();
-		final ResultSubpartitionView reader = subpartition.createReadView(listener);
+		final NoOpPriorityEventListener priorityEventListener = new NoOpPriorityEventListener();
+		final ResultSubpartitionView reader = subpartition.createReadView(listener, priorityEventListener);
 
 		// test
 		final List<ResultSubpartition.BufferAndBacklog> data = drainAvailableData(reader);
@@ -105,7 +108,9 @@ public class BoundedBlockingSubpartitionAvailabilityTest {
 	public void testNotAvailableWhenEmpty() throws Exception {
 		// setup
 		final ResultSubpartition subpartition = createPartitionWithData(100_000);
-		final ResultSubpartitionView reader = subpartition.createReadView(new NoOpBufferAvailablityListener());
+		final ResultSubpartitionView reader = subpartition.createReadView(
+			new NoOpBufferAvailablityListener(),
+			new NoOpPriorityEventListener());
 
 		// test
 		drainAllData(reader);

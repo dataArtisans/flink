@@ -20,7 +20,9 @@ package org.apache.flink.runtime.io.network.netty;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.io.network.NetworkSequenceViewReader;
+import org.apache.flink.runtime.io.network.buffer.BufferConsumer;
 import org.apache.flink.runtime.io.network.partition.BufferAvailabilityListener;
+import org.apache.flink.runtime.io.network.partition.PriorityEventListener;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionProvider;
 import org.apache.flink.runtime.io.network.partition.ResultSubpartition.BufferAndBacklog;
@@ -37,7 +39,7 @@ import java.io.IOException;
  * <p>It also keeps track of available buffers and notifies the outbound
  * handler about non-emptiness, similar to the {@link LocalInputChannel}.
  */
-class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListener, NetworkSequenceViewReader {
+class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListener, NetworkSequenceViewReader, PriorityEventListener {
 
 	private final Object requestLock = new Object();
 
@@ -86,6 +88,7 @@ class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListen
 				this.subpartitionView = partitionProvider.createSubpartitionView(
 					resultPartitionId,
 					subPartitionIndex,
+					this,
 					this);
 			} else {
 				throw new IllegalStateException("Subpartition already requested");
@@ -209,5 +212,12 @@ class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListen
 			", numCreditsAvailable=" + numCreditsAvailable +
 			", isRegisteredAsAvailable=" + isRegisteredAsAvailable +
 			'}';
+	}
+
+	@Override
+	public boolean priorityEvent(BufferConsumer bufferConsumer) {
+		// make sure netty consumer knows that it can immediately process next buffer
+		notifyDataAvailable();
+		return false;
 	}
 }

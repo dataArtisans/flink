@@ -80,7 +80,7 @@ public class PipelinedSubpartitionWithReadViewTest {
 			BUFFER_SIZE);
 		subpartition = new PipelinedSubpartition(0, parent);
 		availablityListener = new AwaitableBufferAvailablityListener();
-		readView = subpartition.createReadView(availablityListener);
+		readView = subpartition.createReadView(availablityListener, new NoOpPriorityEventListener());
 	}
 
 	@After

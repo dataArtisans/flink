@@ -29,8 +29,9 @@ public interface ResultPartitionProvider {
 	 * Returns the requested intermediate result partition input view.
 	 */
 	ResultSubpartitionView createSubpartitionView(
-			ResultPartitionID partitionId,
-			int index,
-			BufferAvailabilityListener availabilityListener) throws IOException;
+		ResultPartitionID partitionId,
+		int subpartitionIndex,
+		BufferAvailabilityListener availabilityListener,
+		PriorityEventListener priorityEventListener) throws IOException;
 
 }

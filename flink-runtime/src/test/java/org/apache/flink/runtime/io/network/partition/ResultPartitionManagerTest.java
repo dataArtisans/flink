@@ -52,7 +52,11 @@ public class ResultPartitionManagerTest extends TestLogger {
 		final ResultPartition partition = createPartition();
 
 		partitionManager.registerResultPartition(partition);
-		partitionManager.createSubpartitionView(partition.getPartitionId(), 0, new NoOpBufferAvailablityListener());
+		partitionManager.createSubpartitionView(
+			partition.getPartitionId(),
+			0,
+			new NoOpBufferAvailablityListener(),
+			new NoOpPriorityEventListener());
 	}
 
 	/**

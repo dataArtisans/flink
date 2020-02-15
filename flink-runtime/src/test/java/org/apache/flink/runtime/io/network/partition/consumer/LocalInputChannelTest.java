@@ -29,6 +29,7 @@ import org.apache.flink.runtime.io.network.buffer.BufferPool;
 import org.apache.flink.runtime.io.network.buffer.BufferProvider;
 import org.apache.flink.runtime.io.network.buffer.NetworkBufferPool;
 import org.apache.flink.runtime.io.network.partition.BufferAvailabilityListener;
+import org.apache.flink.runtime.io.network.partition.NoOpPriorityEventListener;
 import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
 import org.apache.flink.runtime.io.network.partition.PartitionTestUtils;
 import org.apache.flink.runtime.io.network.partition.ResultPartition;
@@ -199,7 +200,7 @@ public class LocalInputChannelTest {
 		LocalInputChannel ch = createLocalInputChannel(inputGate, partitionManager, initialBackoff, maxBackoff);
 
 		when(partitionManager
-				.createSubpartitionView(eq(ch.partitionId), eq(0), any(BufferAvailabilityListener.class)))
+				.createSubpartitionView(eq(ch.partitionId), eq(0), any(BufferAvailabilityListener.class), null))
 				.thenThrow(new PartitionNotFoundException(ch.partitionId));
 
 		Timer timer = mock(Timer.class);
@@ -215,7 +216,7 @@ public class LocalInputChannelTest {
 		// Initial request
 		ch.requestSubpartition(0);
 		verify(partitionManager)
-				.createSubpartitionView(eq(ch.partitionId), eq(0), any(BufferAvailabilityListener.class));
+				.createSubpartitionView(eq(ch.partitionId), eq(0), any(BufferAvailabilityListener.class), null);
 
 		// Request subpartition and verify that the actual requests are delayed.
 		for (long expected : expectedDelays) {
@@ -242,7 +243,8 @@ public class LocalInputChannelTest {
 
 		ResultPartitionManager partitionManager = mock(ResultPartitionManager.class);
 		when(partitionManager
-				.createSubpartitionView(any(ResultPartitionID.class), anyInt(), any(BufferAvailabilityListener.class)))
+				.createSubpartitionView(any(ResultPartitionID.class), anyInt(), any(BufferAvailabilityListener.class),
+					null))
 				.thenReturn(view);
 
 		SingleInputGate inputGate = mock(SingleInputGate.class);
@@ -358,7 +360,7 @@ public class LocalInputChannelTest {
 			.createSubpartitionView(
 				any(ResultPartitionID.class),
 				anyInt(),
-				any(BufferAvailabilityListener.class)))
+				any(BufferAvailabilityListener.class), null))
 			.thenAnswer(new Answer<ResultSubpartitionView>() {
 				@Override
 				public ResultSubpartitionView answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -387,7 +389,7 @@ public class LocalInputChannelTest {
 			public void run() {
 				try {
 					channel.requestSubpartition(0);
-				} catch (IOException | InterruptedException ignored) {
+				} catch (IOException ignored) {
 				}
 			}
 		};
@@ -454,7 +456,7 @@ public class LocalInputChannelTest {
 		if (addBuffer) {
 			subpartition.add(BufferBuilderTestUtils.createFilledFinishedBufferConsumer(bufferSize));
 		}
-		return subpartition.createReadView(() -> {});
+		return subpartition.createReadView(() -> {}, new NoOpPriorityEventListener());
 	}
 
 	/**

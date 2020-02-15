@@ -95,7 +95,9 @@ public abstract class ResultSubpartition {
 
 	public abstract void release() throws IOException;
 
-	public abstract ResultSubpartitionView createReadView(BufferAvailabilityListener availabilityListener) throws IOException;
+	public abstract ResultSubpartitionView createReadView(
+		BufferAvailabilityListener availabilityListener,
+		PriorityEventListener priorityEventListener) throws IOException;
 
 	abstract int releaseMemory() throws IOException;
 

@@ -73,10 +73,13 @@ public class ReleaseOnConsumptionResultPartition extends ResultPartition {
 	}
 
 	@Override
-	public ResultSubpartitionView createSubpartitionView(int index, BufferAvailabilityListener availabilityListener) throws IOException {
+	public ResultSubpartitionView createSubpartitionView(
+			int index,
+			BufferAvailabilityListener availabilityListener,
+			PriorityEventListener priorityEventListener) throws IOException {
 		checkState(numUnconsumedSubpartitions > 0, "Partition not pinned.");
 
-		return super.createSubpartitionView(index, availabilityListener);
+		return super.createSubpartitionView(index, availabilityListener, priorityEventListener);
 	}
 
 	@Override
