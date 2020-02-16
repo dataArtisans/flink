@@ -20,15 +20,11 @@ package org.apache.flink.runtime.io.network.buffer;
 
 import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
 
-import java.io.IOException;
-
 /**
  * Interface of listener for notifying the received data buffer or checkpoint barrier
  * from network channel.
  */
 public interface BufferReceivedListener {
 
-	void notifyBufferReceived(Buffer buffer, int channelIndex) throws IOException;
-
-	void notifyBarrierReceived(CheckpointBarrier barrier, int channelIndex) throws IOException;
+	void notifyBarrierReceived(CheckpointBarrier barrier, int channelIndex);
 }

@@ -30,8 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-import java.io.IOException;
-
 /**
  * {@link CheckpointBarrierUnaligner} is used for triggering checkpoint while reading the first barrier
  * and keeping track of the number of received barriers and consumed barriers.
@@ -42,23 +40,6 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 	private static final Logger LOG = LoggerFactory.getLogger(CheckpointBarrierUnaligner.class);
 
 	private final String taskName;
-
-	/**
-	 * Tag the state of which input channel has read the barrier. If one channel has read the barrier by task,
-	 * the respective in-flight input buffers should be empty when triggering unaligned checkpoint .
-	 */
-	private final boolean[] barrierConsumedChannels;
-
-	/**
-	 * The number of input channels which have received the barrier. When all the channels have got the barrier,
-	 * there are no more received buffers to be spilled.
-	 */
-	private int numBarriersReceived;
-
-	/**
-	 * The number of input channels which has read the barrier by task.
-	 */
-	private int numBarriersConsumed;
 
 	/**
 	 * The checkpoint id to guarantee that we would trigger only one checkpoint when reading the same barrier from
@@ -73,7 +54,6 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 		super(toNotifyOnCheckpoint);
 
 		this.taskName = taskName;
-		this.barrierConsumedChannels = new boolean[totalNumberOfInputChannels];
 	}
 
 	@Override
@@ -99,12 +79,10 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 	 * <p>Note this is also suitable for the trigger case of local input channel.
 	 */
 	@Override
-	public boolean processBarrier(CheckpointBarrier receivedBarrier, int channelIndex, long bufferedBytes) throws Exception {
+	public synchronized boolean processBarrier(CheckpointBarrier receivedBarrier, int channelIndex, long bufferedBytes) throws Exception {
 		final long barrierId = receivedBarrier.getId();
-		readBarrier(channelIndex, barrierId);
 
-		if (barrierId > currentCheckpointId) {
-			currentCheckpointId = barrierId;
+		if (readBarrier(channelIndex, barrierId)) {
 			notifyCheckpoint(receivedBarrier, bufferedBytes, 0);
 		}
 		return false;
@@ -140,8 +118,8 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 	}
 
 	@Override
-	public void notifyBarrierReceived(CheckpointBarrier barrier, int channelIndex) {
-		boolean isFirstReceivedBarrier = onBarrier(channelIndex);
+	public synchronized void notifyBarrierReceived(CheckpointBarrier barrier, int channelIndex) {
+		boolean isFirstReceivedBarrier = onBarrier(channelIndex, barrier.getId());
 
 		if (isFirstReceivedBarrier) {
 			triggerCheckpoint(barrier);
@@ -152,44 +130,28 @@ public class CheckpointBarrierUnaligner extends CheckpointBarrierHandler {
 	 * Note that we make the assumption that there is only one checkpoint under going at a time. That means one channel
 	 * would not receive a bigger checkpoint id than other channels during alignment.
 	 */
-	private synchronized boolean onBarrier(int channelIndex) {
+	private boolean onBarrier(int channelIndex, long barrierId) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("{}: Received barrier from channel {}.", taskName, channelIndex);
 		}
 
-		final int currentNumBarrierReceived = numBarriersReceived;
-
-		if (++numBarriersReceived == barrierConsumedChannels.length) {
-			numBarriersReceived = 0;
-			//TODO we need also notify the input persister of finishing spilling future
-		}
-
-		return currentNumBarrierReceived == 0;
+		return isNewCheckpoint(barrierId);
 	}
 
-	private void readBarrier(int channelIndex, long barrierId) throws IOException {
+	private boolean readBarrier(int channelIndex, long barrierId) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("{}: Read barrier from channel {}.", taskName, channelIndex);
 		}
 
-		if (!barrierConsumedChannels[channelIndex]) {
-			barrierConsumedChannels[channelIndex] = true;
-
-			if (++numBarriersConsumed == barrierConsumedChannels.length) {
-				releaseConsumedAndResetBarriers();
-			}
-		}
-		else {
-			LOG.error("Stream corrupt: Repeated barrier for same checkpoint on input " + channelIndex +
-				"; current checkpoint=" + currentCheckpointId + "; barrierId=" + barrierId);
-		}
+		return isNewCheckpoint(barrierId);
 	}
 
-	private void releaseConsumedAndResetBarriers() {
-		for (int i = 0; i < barrierConsumedChannels.length; i++) {
-			barrierConsumedChannels[i] = false;
+	private boolean isNewCheckpoint(long barrierId) {
+		boolean newCheckpoint = barrierId > currentCheckpointId;
+		if (newCheckpoint) {
+			currentCheckpointId = barrierId;
 		}
-		numBarriersConsumed = 0;
+		return newCheckpoint;
 	}
 
 	private void triggerCheckpoint(CheckpointBarrier barrier) {
