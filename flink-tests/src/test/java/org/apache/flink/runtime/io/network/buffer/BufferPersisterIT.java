@@ -22,6 +22,7 @@ import org.apache.flink.api.common.accumulators.LongCounter;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.LocalStreamEnvironment;
@@ -52,6 +53,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests that a buffer persister indeed spills the required data onto disk.
@@ -65,7 +67,7 @@ public class BufferPersisterIT extends TestLogger {
 
 	private static final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 
-//	@Rule
+	//	@Rule
 	public final Timeout timeout = Timeout.builder()
 		.withTimeout(30, TimeUnit.SECONDS)
 		.withLookingForStuckThread(true)
@@ -76,20 +78,15 @@ public class BufferPersisterIT extends TestLogger {
 		final File persistDir = temporaryFolder.newFolder();
 		StreamExecutionEnvironment env = createEnv(persistDir, 1);
 
-		createDAG(env, 10_000_000L);
+		createDAG(env, 100);
 		final JobExecutionResult executionResult = env.execute();
 
-		// each record has a header and a payload, that is 9 bytes.
-		// with two buffer persisters that's a total of 18 bytes.
-		// watermarks can add additional bytes, so we are lenient in the check
-		final long outputs = executionResult.getAccumulatorResult("outputs");
-		long expectedSize = outputs * 18;
 		long writtenBytes = executionResult.getAccumulatorResult("writtenBytes");
-		assertEquals(expectedSize, writtenBytes, expectedSize * .05f);
-
 		long persistedBytes = executionResult.getAccumulatorResult("persistedBytes");
 		long numCheckpoints = getMetricValue("*numberOfCompletedCheckpoints*:*");
-		assertEquals(expectedSize, persistedBytes, expectedSize / numCheckpoints);
+		assertTrue(persistedBytes > 0);
+		assertTrue(writtenBytes >= persistedBytes);
+		assertEquals(writtenBytes, persistedBytes, writtenBytes / numCheckpoints);
 	}
 
 	@Test
@@ -97,26 +94,55 @@ public class BufferPersisterIT extends TestLogger {
 		final File persistDir = temporaryFolder.newFolder();
 		StreamExecutionEnvironment env = createEnv(persistDir, 2);
 
-		createDAG(env, 20_000_000);
+		createDAG(env, 100);
 		final JobExecutionResult executionResult = env.execute();
 
-		// each record has a header and a payload, that is 9 bytes.
-		// with two buffer persisters that's a total of 18 bytes.
-		// watermarks can add additional bytes, so we are lenient in the check
-		final long outputs = executionResult.getAccumulatorResult("outputs");
-		long expectedSize = outputs * 18;
 		long writtenBytes = executionResult.getAccumulatorResult("writtenBytes");
-		assertEquals(expectedSize, writtenBytes, expectedSize * .05f);
-
 		long persistedBytes = executionResult.getAccumulatorResult("persistedBytes");
 		long numCheckpoints = getMetricValue("*numberOfCompletedCheckpoints*:*");
-		assertEquals(expectedSize, persistedBytes, expectedSize / numCheckpoints);
+		assertTrue(persistedBytes > 0);
+		assertTrue(writtenBytes >= persistedBytes);
+		assertEquals(writtenBytes, persistedBytes, writtenBytes / numCheckpoints);
+	}
+
+	@Test
+	public void testMoreParallelPersist() throws Exception {
+		final File persistDir = temporaryFolder.newFolder();
+		StreamExecutionEnvironment env = createEnv(persistDir, 4);
+
+		createDAG(env, 100);
+		final JobExecutionResult executionResult = env.execute();
+
+		long writtenBytes = executionResult.getAccumulatorResult("writtenBytes");
+		long persistedBytes = executionResult.getAccumulatorResult("persistedBytes");
+		long numCheckpoints = getMetricValue("*numberOfCompletedCheckpoints*:*");
+		assertTrue(persistedBytes > 0);
+		assertTrue(writtenBytes >= persistedBytes);
+		assertEquals(writtenBytes, persistedBytes, writtenBytes / numCheckpoints);
+	}
+
+	@Test
+	public void testMassivelyParallelPersist() throws Exception {
+		final File persistDir = temporaryFolder.newFolder();
+		StreamExecutionEnvironment env = createEnv(persistDir, 20);
+
+		createDAG(env, 100);
+		final JobExecutionResult executionResult = env.execute();
+
+		long writtenBytes = executionResult.getAccumulatorResult("writtenBytes");
+		long persistedBytes = executionResult.getAccumulatorResult("persistedBytes");
+		long numCheckpoints = getMetricValue("*numberOfCompletedCheckpoints*:*");
+		assertTrue(persistedBytes > 0);
+		assertTrue(writtenBytes >= persistedBytes);
+		assertEquals(writtenBytes, persistedBytes, writtenBytes / numCheckpoints);
 	}
 
 	@Nonnull
 	private static LocalStreamEnvironment createEnv(final File persistDir, final int parallelism) {
 		Configuration conf = new Configuration();
 		conf.setInteger(TaskManagerOptions.NUM_TASK_SLOTS, 3);
+		conf.setFloat(TaskManagerOptions.NETWORK_MEMORY_FRACTION, .8f);
+		conf.set(TaskManagerOptions.NETWORK_MEMORY_MIN, MemorySize.ofMebiBytes(1000 / parallelism));
 		conf.setInteger(ConfigConstants.LOCAL_NUMBER_TASK_MANAGER, parallelism);
 		conf.setString(CheckpointingOptions.PERSIST_LOCATION_CONFIG, persistDir.toURI().toString());
 		conf.setString("metrics.reporter.jmx.factory.class", "org.apache.flink.metrics.jmx.JMXReporterFactory");
@@ -127,8 +153,8 @@ public class BufferPersisterIT extends TestLogger {
 
 	private void createDAG(
 			final StreamExecutionEnvironment env,
-			final long maxBytes) {
-		final SingleOutputStreamOperator<Integer> source = env.addSource(new IntegerSource(maxBytes));
+			final long minCheckpoints) {
+		final SingleOutputStreamOperator<Integer> source = env.addSource(new IntegerSource(minCheckpoints));
 		final SingleOutputStreamOperator<Integer> transform = source.shuffle().map(i -> 2 * i);
 		transform.shuffle().addSink(new CountingSink<>());
 	}
@@ -157,11 +183,11 @@ public class BufferPersisterIT extends TestLogger {
 
 	private static class IntegerSource extends RichParallelSourceFunction<Integer> {
 
-		private final long maxBytes;
+		private final long minCheckpoints;
 		private volatile boolean running = true;
 
-		public IntegerSource(final long maxBytes) {
-			this.maxBytes = maxBytes;
+		public IntegerSource(final long minCheckpoints) {
+			this.minCheckpoints = minCheckpoints;
 		}
 
 		private LongCounter persistedBytes = new LongCounter();
@@ -177,7 +203,7 @@ public class BufferPersisterIT extends TestLogger {
 		@Override
 		public void close() throws Exception {
 			super.close();
-			persistedBytes.add(getPersistedBytes());
+			persistedBytes.add(getMetricCount("*persistedBytes*:*,subtask_index=" + getRuntimeContext().getIndexOfThisSubtask()));
 			writtenBytes.add(getMetricCount("*writtenBytes*:*,subtask_index=" + getRuntimeContext().getIndexOfThisSubtask()));
 		}
 
@@ -185,22 +211,15 @@ public class BufferPersisterIT extends TestLogger {
 		public void run(SourceContext<Integer> ctx) throws Exception {
 			int counter = 0;
 			while (running) {
-				synchronized (ctx.getCheckpointLock()) {
-					ctx.collect(counter++);
-				}
+				ctx.collect(counter++);
 
-				if (counter % 1000 == 0 && getPersistedBytes() >= maxBytes) {
-					LOG.info("Done persisting " + getPersistedBytes());
+				if (getMetricValue("*numberOfCompletedCheckpoints*:*") >= minCheckpoints) {
 					cancel();
 				}
 			}
 
 			// wait for all instances to finish, such that checkpoints are still processed
 			Thread.sleep(1000);
-		}
-
-		private long getPersistedBytes() {
-			return getMetricCount("*persistedBytes*:*,subtask_index=" + getRuntimeContext().getIndexOfThisSubtask());
 		}
 
 		@Override
@@ -221,6 +240,7 @@ public class BufferPersisterIT extends TestLogger {
 		@Override
 		public void invoke(T value, Context context) throws Exception {
 			counter.add(1);
+			Thread.sleep(1);
 		}
 	}
 }
